@@ -1,0 +1,50 @@
+{
+    "label":{
+        "font":{
+            "name":"Helvetica",
+            "size":"30",
+            "regular_path":"fonts/Helvetica-Font/Helvetica.ttf",
+            "bold_path":"fonts/Helvetica-Font/Helvetica-Bold.ttf",
+            "italic_path":"fonts/Helvetica-Font/Helvetica-Oblique.ttf",
+            "bold_italic_path":"fonts/Helvetica-Font/Helvetica-BoldOblique.ttf"
+        }
+    },
+    "@title":{
+        "font":{
+            "name":"Helvetica", 
+            "size":"50"
+        }, 
+        "colours":{
+            "normal_text":"rgb(255,255,255)",
+            "dark_bg":"rgb(50,50,50)", 
+            "text_shadow":"rgb(0,0,0)"
+        }, 
+        "misc":{
+            "text_shadow":"1",
+            "text_shadow_size":"2", 
+            "text_shadow_offset":"3,3"
+        }
+    }, 
+    "@error_msg":{
+        "font":{
+            "name":"Helvetica", 
+            "size":"20"
+        },
+        "colours":{
+            "normal_text":"rgb(255,0,0)"
+        }
+    }, 
+    "button":{
+        "font":{
+            "name":"Helvetica", 
+            "size":"20"
+        }
+    }, 
+    "@confirm_btn":{
+        "colours":{
+            "normal_bg":"rgb(0, 255, 0)", 
+            "hovered_bg":"rgb(50, 100, 50)", 
+            "normal_text":"rgb(0, 0, 0)"
+        }
+    }
+}
