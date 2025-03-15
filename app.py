@@ -1,7 +1,8 @@
 import tkinter as tk
-from tkinter import filedialog
+from tkinter import filedialog, messagebox
 import os
 import json
+import math
 
 import pygame
 import pygame_gui.core.object_id
@@ -29,6 +30,9 @@ class App:
         self.clock = pygame.time.Clock()
         self.dt = 0
         self.running = True
+        
+        self.panning_active = False
+        self.dragging = False
         
         #Pygame GUI basic setups
         self.manager = pygame_gui.UIManager(WINDOW_SIZE, theme_path="themes/theme.json")
@@ -177,8 +181,10 @@ class App:
         
         #Initialize variables
         #Option screen
-        self.video_resolution = (0, 0)
         self.fps = 30
+        first_image = pygame.image.load(self.image_paths[0])
+        width, height = first_image.get_width(), first_image.get_height()
+        self.video_resolution = (int(width), int(height))
         
         #Panning screen
         self.panning = dict() #For storing panning results
@@ -331,11 +337,10 @@ class App:
             starting_option="Off"
         )
         
-        first_image = pygame.image.load(self.image_paths[0])
-        width, height = first_image.get_width(), first_image.get_height()
-        self.resolution_width_entry.set_text(str(width))
-        self.resolution_height_entry.set_text(str(height))
-        self.video_resolution = (int(width), int(height))
+        
+        self.resolution_width_entry.set_text(str(self.video_resolution[0]))
+        self.resolution_height_entry.set_text(str(self.video_resolution[1]))
+        
         if not self.check_resolution_valid():
             self.resolution_error_msg.show()
         else:
@@ -345,6 +350,9 @@ class App:
             self.fps_error_msg.show()
         else:
             self.fps_error_msg.hide()
+            video_length = round(len(self.image_paths) / self.fps, 1)
+            self.video_length_label.set_text(f"Video Length: {video_length} seconds")
+            
         
     
     def check_resolution_valid(self):
@@ -369,7 +377,7 @@ class App:
         )
         
         self.panning_image_select = pygame_gui.elements.UISelectionList(
-            relative_rect=pygame.Rect(-380, 0, 380, 650),
+            relative_rect=pygame.Rect(-370, 0, 370, 650),
             item_list=[(name, f"#Select_{name}_btn") for name in self.get_image_names()],
             manager=self.manager, 
             container=self.scene2_panning_screen, 
@@ -382,14 +390,14 @@ class App:
         self.panning_image_display_size = self.panning_image_display_width, self.panning_image_display_height = (700, 500)
         
         self.panning_image_display_panel = pygame_gui.elements.UIPanel(
-            relative_rect=pygame.Rect((0, 0), self.panning_image_display_size),
+            relative_rect=pygame.Rect((0, 0), (self.panning_image_display_width+3, self.panning_image_display_height+3)),
             manager=self.manager, 
             container=self.scene2_panning_screen, 
             anchors={"left":"left", "top":"top"}, 
             object_id=ObjectID(class_id="@panel", object_id="#image_display")
         )
 
-        self.initialize_image_display(self.image_paths[0])
+        
         
         #Panning screen option buttons
         self.zoom_label = pygame_gui.elements.UILabel(
@@ -402,14 +410,13 @@ class App:
         )
         self.zoom_slider = pygame_gui.elements.UIHorizontalSlider(
             relative_rect=pygame.Rect(0, 0, 400, 30), 
-            start_value=0.0, 
-            value_range=(0.0, 1.0), 
+            start_value=1, 
+            value_range=(1, 50), 
             manager=self.manager, 
             container=self.scene2_panning_screen, 
             anchors={"left":"left", "top":"top", "top_target":self.panning_image_display_panel, "left_target":self.zoom_label}, 
             object_id=ObjectID(class_id="@slider", object_id="#panning_zoom_slider")
         )
-        self.zoom_slider.set_current_value(self.panning_zoom_level)
         
         self.zoom_entry = pygame_gui.elements.UITextEntryLine(
             relative_rect=pygame.Rect(0, 0, 100, 50),
@@ -418,7 +425,6 @@ class App:
             anchors={"left":"left", "top":"top", "top_target":self.panning_image_display_panel, "left_target":self.zoom_slider}, 
             object_id=ObjectID(class_id="@option_entry", object_id="#panning_zoom_entry")
         )
-        self.zoom_entry.set_text(str(self.panning_zoom_level))
         
         self.panning_reset_btn = pygame_gui.elements.UIButton(
             relative_rect=pygame.Rect(0, 20, 100, 50),
@@ -446,8 +452,6 @@ class App:
             anchors={"left":"left", "top":"top", "left_target":self.panning_save_btn, "top_target":self.zoom_slider}, 
             object_id=ObjectID(class_id="@button", object_id="#panning_delete_btn")
         )
-        if self.panning_image_path not in self.panning:
-            self.panning_delete_btn.disable()
         
         
         self.panning_exclude_image_btn = pygame_gui.elements.UIButton(
@@ -458,71 +462,92 @@ class App:
             anchors={"left":"left", "top":"top", "left_target":self.panning_delete_btn, "top_target":self.zoom_slider}, 
             object_id=ObjectID(class_id="@button", object_id="#panning_exclude_image_btn")
         )
+        if len(self.image_paths) == 1:
+            self.panning_exclude_image_btn.disable()
+        elif len(self.image_paths) == 0:
+            raise Exception("Hey there's no image paths in the list, what's going on??")
+        
+        
+        self.panning_save_msg = pygame_gui.elements.UILabel(
+            relative_rect=pygame.Rect(0, 0, 100, 50),
+            text='Saved', 
+            manager=self.manager, 
+            container=self.scene2_panning_screen, 
+            anchors={"left":"left", "top":"top", "top_target":self.panning_exclude_image_btn},
+            object_id=ObjectID(class_id="@label", object_id="#panning_zoom_label")
+        )
+        self.panning_save_msg.hide()
+        
+        self.initialize_image_display(self.image_paths[0])
         
         
 
     
     def initialize_image_display(self, image_path):
-        # Initialize viewing variables
-        self.panning_view_top_left = (0, 0)
-        self.panning_view_width = self.panning_image_display_width
-        self.panning_view_height = self.panning_image_display_height
+        # Load image
+        self.panning_image_path = image_path
+        self.panning_image = pygame.image.load(image_path)
+        
+        width_ratio = self.video_resolution[0] / self.panning_image.get_width()
+        height_ratio = self.video_resolution[1] / self.panning_image.get_height()
+        scaling_ratio = max(width_ratio, height_ratio)
+        self.base_panning_selected_width = int(self.video_resolution[0] / scaling_ratio)
+        self.base_panning_selected_height = int(self.video_resolution[1] / scaling_ratio)
         
         # 0. Get the panning information for the image
         if image_path not in self.panning:
-            self.panning_image_top_left = (0, 0)
-            self.panning_image_width = self.video_resolution[0]
-            self.panning_image_height = self.video_resolution[1]
-            self.panning_zoom_level = 0
+            self.panning_selected_top_left = (0, 0)
+            self.panning_selected_width = self.base_panning_selected_width
+            self.panning_selected_height = self.base_panning_selected_height
+            # print(self.panning_selected_width, self.panning_selected_height)
+            self.panning_zoom_level = 1
+            self.panning_delete_btn.disable()
         else:
-            self.panning_image_top_left = self.panning[image_path]["top_left"]
-            self.panning_image_width = self.panning[image_path]["width"]
-            self.panning_image_height = self.panning[image_path]["height"]
+            self.panning_selected_top_left = self.panning[image_path]["top_left"]
+            self.panning_selected_width = self.panning[image_path]["width"]
+            self.panning_selected_height = self.panning[image_path]["height"]
             self.panning_zoom_level = self.panning[image_path]["zoom_level"]
+            self.panning_delete_btn.enable()
         
-        self.panning_image_path = image_path
-        self.panning_image = pygame.image.load(image_path)
+        self.zoom_entry.set_text(str(self.panning_zoom_level))
+        self.zoom_slider.set_current_value(self.panning_zoom_level)
+        
         self.update_image_display()
     
     
     
     def update_image_display(self):
+        self.panning_save_msg.hide()
         #Reset the panning image display
         if hasattr(self, "panning_image_display"):
             self.panning_image_display.kill()
         
-        # 1. Create the panning selector
-        selector = pygame.Surface((self.panning_image_width, self.panning_image_height)).convert_alpha()
-        selector.fill((0, 0, 0, 50))
-        
         # 2. Initialize image
-        panning_curr_image = self.panning_image.copy()
-        # 3. Put selector on the image
-        panning_curr_image.blit(selector, self.panning_image_top_left)
+        panning_curr_image = self.panning_image
+        
+        # 3. Calculate width and height from zoom level
+        zoom_ratio_per_level = 0.03
+        zoom_ratio = 1 + (self.panning_zoom_level-1) * zoom_ratio_per_level
+        self.panning_selected_width, self.panning_selected_height = int(self.base_panning_selected_width * (1/zoom_ratio)), int(self.base_panning_selected_height * (1/zoom_ratio))
         
         # 4. Crop image according to view pos and size
-        # cropped_surface = pygame.Surface((self.panning_view_width, self.panning_view_height)).convert_alpha()
-        # cropped_surface.fill((0, 0, 0, 0))
-        # cropped_surface.blit(panning_curr_image, (0, 0), pygame.Rect(self.panning_view_top_left, (self.panning_view_width, self.panning_view_height)))
-        # panning_curr_image = cropped_surface
-        panning_curr_image = panning_curr_image.subsurface(pygame.Rect(self.panning_view_top_left, (self.panning_image_width, self.panning_image_height)))
-        # print(panning_curr_image.get_size())
+        panning_curr_image = panning_curr_image.subsurface(pygame.Rect(self.panning_selected_top_left, (self.panning_selected_width, self.panning_selected_height)))
         
         # 5. Calculate scaling ratio for display
         scaling_ratio = max(panning_curr_image.get_width() / self.panning_image_display_width, panning_curr_image.get_height() / self.panning_image_display_height)
-        scaled_width = panning_curr_image.get_width() / scaling_ratio
-        scaled_height = panning_curr_image.get_height() / scaling_ratio
+        scaled_width = int(panning_curr_image.get_width() / scaling_ratio)
+        scaled_height = int(panning_curr_image.get_height() / scaling_ratio)
         
         # 6. Scale the image
-        panning_curr_image = pygame.transform.scale(panning_curr_image, (int(scaled_width), int(scaled_height)))
+        panning_curr_image = pygame.transform.scale(panning_curr_image, (scaled_width, scaled_height))
         
         # And now the preview image is ready to be displayed
         self.panning_image_display = pygame_gui.elements.UIImage(
-            relative_rect=pygame.Rect(0, 0, self.panning_image_display_width, self.panning_image_display_height),
+            relative_rect=pygame.Rect(0, 0, scaled_width, scaled_height),
             image_surface=panning_curr_image,
             manager=self.manager,
             container=self.panning_image_display_panel,
-            anchors={"left":"left", "top":"top"},
+            anchors={"center":"center"},
             object_id=ObjectID(class_id="@image", object_id="#image_display")
         )
     
@@ -607,6 +632,66 @@ class App:
                         self.resolution_error_msg.hide()
                 
                 
+                #Panning screen button events
+                elif event.ui_element == self.panning_reset_btn:
+                    self.panning_selected_top_left = (0, 0)
+                    #Calculate the maximum selection size
+                    width_ratio = self.video_resolution[0] / self.panning_image.get_width()
+                    height_ratio = self.video_resolution[1] / self.panning_image.get_height()
+                    scaling_ratio = max(width_ratio, height_ratio)
+                    self.panning_selected_width = int(self.video_resolution[0] / scaling_ratio)
+                    self.panning_selected_height = int(self.video_resolution[1] / scaling_ratio)
+                    self.panning_zoom_level = 1
+                    
+                    self.panning_save_msg.hide()
+                
+                
+                elif event.ui_element == self.panning_save_btn:
+                    self.panning[self.panning_image_path] = {"top_left":self.panning_selected_top_left, 
+                                                             "width":self.panning_selected_width, 
+                                                             "height":self.panning_selected_height, 
+                                                             "zoom_level":self.panning_zoom_level}
+                    self.panning_delete_btn.enable()
+                    
+                    with open(f"themes/changing_theme.json", "r") as f:
+                        theme = json.load(f)
+                    theme[f"#Select_{os.path.basename(self.panning_image_path)}_btn"] = {"colours" : {"normal_bg":"rgb(255, 0, 0)"}}
+                    with open(f"themes/changing_theme.json", "w") as f:
+                        json.dump(theme, f, indent=2)
+                    
+                    self.panning_save_msg.show()
+                
+                
+                elif event.ui_element == self.panning_delete_btn:
+                    answer = messagebox.askyesno("Delete Image Panning Settings", "Are you sure you want to remove the panning settings for this image?")
+                    if answer is True:
+                        if self.panning_image_path in self.panning:
+                            del self.panning[self.panning_image_path]
+                        self.panning_delete_btn.disable()
+                    
+                        with open(f"themes/changing_theme.json", "r") as f:
+                            theme = json.load(f)
+                        theme[f"#Select_{os.path.basename(self.panning_image_path)}_btn"] = {"colours":{"normal_bg":"rgb(76, 80, 82)", "hovered_bg":"rgb(99, 104, 107)", "selected_bg":"rgb(54, 88, 128)", "active_bg":"rgb(54, 88, 128)"}}
+                        with open(f"themes/changing_theme.json", "w") as f:
+                            json.dump(theme, f, indent=2)
+                        
+                        self.panning_save_msg.hide()
+                    
+                
+                elif event.ui_element == self.panning_exclude_image_btn:
+                    answer = messagebox.askyesno("Exclude Image", "Are you sure you want to remove this image from the video? This action cannot be undone.")
+                    if answer is True:
+                        if self.panning_image_path in self.panning:
+                            del self.panning[self.panning_image_path]
+                        self.image_paths.remove(self.panning_image_path)
+                        self.curr_active_screen.kill()
+                        self.initialize_panning_screen()
+                        self.curr_active_screen = self.scene2_panning_screen
+                        
+                
+
+                
+                
                 
             
             
@@ -615,6 +700,7 @@ class App:
                 if event.ui_element == self.file_path_entry:
                     self.scene1_error_msg.hide()
                 
+                #Options screen event
                 elif event.ui_element == self.resolution_width_entry or event.ui_element == self.resolution_height_entry:
                     width = self.resolution_width_entry.get_text()
                     height = self.resolution_height_entry.get_text()
@@ -639,19 +725,61 @@ class App:
                         self.video_length_label.set_text(f"Video Length: {video_length} seconds")
                 
                 
+                #Panning screen event
+                elif event.ui_element == self.zoom_entry:
+                    zoom = self.zoom_entry.get_text()
+                    if zoom.isdigit():
+                        zoom = min(int(zoom), 50)
+                        zoom = max(zoom, 1)
+                        self.panning_zoom_level = zoom
+                        self.zoom_slider.set_current_value(self.panning_zoom_level)
+                        self.update_image_display()
+            
+            
+            #Horizontal slider event
+            elif event.type == pygame_gui.UI_HORIZONTAL_SLIDER_MOVED:
+                if event.ui_element == self.zoom_slider:
+                    self.panning_zoom_level = int(self.zoom_slider.get_current_value())
+                    self.zoom_entry.set_text(str(self.panning_zoom_level))
+                    self.update_image_display()
+            
+                
+                
             #Selection list events
             elif event.type == pygame_gui.UI_SELECTION_LIST_NEW_SELECTION:
                 if event.ui_element == self.panning_image_select:
                     image_name = event.text
                     image_path = os.path.join(self.folder_path, image_name)
                     self.initialize_image_display(image_path)
+                    self.dragging = False
                     
-                    # with open(f"themes/changing_theme.json", "r") as f:
-                    #     theme = json.load(f)
-                    # theme[f"#Select_{image_name}_btn"] = {"colours" : {"selected_bg":"rgb(0, 0, 255)", "normal_border":"rgb(255, 0, 0)"}}
-                    # with open(f"themes/changing_theme.json", "w") as f:
-                    #     json.dump(theme, f, indent=2)
             
+            #Mouse click events
+            elif event.type == pygame.MOUSEBUTTONDOWN:
+                if self.panning_active and event.button == pygame.BUTTON_LEFT:
+                    pos = event.pos
+                    # print(pos)
+                    rect = self.panning_image_display.get_abs_rect()
+                    # print(rect.topleft, rect.topright, rect.bottomleft, rect.bottomright, rect.width, rect.height)
+                    if rect.collidepoint(pos):
+                        self.dragging = True
+            
+            elif event.type == pygame.MOUSEBUTTONUP:
+                if event.button == pygame.BUTTON_LEFT:
+                    self.dragging = False
+            
+            elif event.type == pygame.MOUSEMOTION:
+                if self.panning_active and self.dragging:
+                    move = move_x, move_y = event.rel
+                    
+                    selected_x, selected_y = self.panning_selected_top_left
+                    selected_w, selected_h = self.panning_selected_width, self.panning_selected_height
+                    
+                    image_w, image_h = self.panning_image.get_width(), self.panning_image.get_height()
+                    
+                    display_w, display_h = self.panning_image_display_size
+                    
+                    
             
             
             
