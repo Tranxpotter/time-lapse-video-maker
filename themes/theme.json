@@ -25,6 +25,24 @@
             "text_shadow_offset":"3,3"
         }
     }, 
+    "@title2":{
+        "font":{
+            "name":"Helvetica", 
+            "size":"40"
+        }
+    },
+    "@title3":{
+        "font":{
+            "name":"Helvetica", 
+            "size":"30"
+        }
+    },
+    "@label":{
+        "font":{
+            "name":"Helvetica", 
+            "size":"20"
+        }
+    },
     "@error_msg":{
         "font":{
             "name":"Helvetica", 
@@ -32,6 +50,18 @@
         },
         "colours":{
             "normal_text":"rgb(255,0,0)"
+        }
+    }, 
+    "@left_error_msg":{
+        "font":{
+            "name":"Helvetica", 
+            "size":"20"
+        },
+        "colours":{
+            "normal_text":"rgb(255,0,0)"
+        }, 
+        "misc":{
+            "text_horiz_alignment":"left"
         }
     }, 
     "button":{
@@ -45,6 +75,11 @@
             "normal_bg":"rgb(0, 255, 0)", 
             "hovered_bg":"rgb(50, 100, 50)", 
             "normal_text":"rgb(0, 0, 0)"
+        }
+    }, 
+    "selection_list.@selection_list_item":{
+        "misc":{
+            "border_width":"1"
         }
     }
 }
