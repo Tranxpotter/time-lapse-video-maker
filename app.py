@@ -3,6 +3,7 @@ from tkinter import filedialog, messagebox
 import os
 import json
 import threading
+import sys
 
 import pygame
 import pygame_gui.core.object_id
@@ -19,6 +20,16 @@ VALID_FILE_TYPES = ["jpg", "jpeg", "png", "bmp", "tiff", "tif", "cr2", "JPG", "J
 
 class App:
     def __init__(self):
+        #Get program base path
+        if getattr(sys, 'frozen', False):
+            self.application_path = sys._MEIPASS
+        else:
+            self.application_path = os.path.dirname(os.path.abspath(__file__))
+        
+        # with open(os.path.join(self.application_path, "data/themes/theme.json"), "r") as f:
+        #     theme = json.load(f)
+        # theme["label"]["font"]
+        
         #Tkinter basic setups
         tk.Tk().withdraw()
         
@@ -37,12 +48,12 @@ class App:
         self.exporting = False
         
         #Pygame GUI basic setups
-        self.manager = pygame_gui.UIManager(WINDOW_SIZE, theme_path="themes/theme.json")
+        self.manager = pygame_gui.UIManager(WINDOW_SIZE, theme_path=os.path.join(self.application_path, "data/themes/theme.json"))
         
         #Reset changing theme
-        with open(f"themes/changing_theme.json", "w") as f:
+        with open(os.path.join(self.application_path, "data/themes/changing_theme.json"), "w") as f:
             json.dump({}, f, indent=2)
-        self.manager.get_theme().load_theme("themes/changing_theme.json")
+        self.manager.get_theme().load_theme(os.path.join(self.application_path, "data/themes/changing_theme.json"))
 
         
         self.scene1()
@@ -767,13 +778,13 @@ class App:
         
         
     def preview_show_image(self, image_path):
-        with open(f"themes/changing_theme.json", "r") as f:
+        with open(os.path.join(self.application_path, "data/themes/changing_theme.json"), "r") as f:
             theme = json.load(f)
         if hasattr(self, "preview_showing_image_path"):
             if f"#Preview_{os.path.basename(self.preview_showing_image_path)}_btn" in theme:
                 theme[f"#Preview_{os.path.basename(self.preview_showing_image_path)}_btn"] = {"colours":{"normal_bg":"rgb(76, 80, 82)", "hovered_bg":"rgb(99, 104, 107)", "selected_bg":"rgb(54, 88, 128)", "active_bg":"rgb(54, 88, 128)"}}
         theme[f"#Preview_{os.path.basename(image_path)}_btn"] = {"colours":{"normal_bg":"rgb(255, 0, 0)", "hovered_bg":"rgb(255, 0, 0)", "selected_bg":"rgb(255, 0, 0)", "active_bg":"rgb(255, 0, 0)"}}
-        with open(f"themes/changing_theme.json", "w") as f:
+        with open(os.path.join(self.application_path, "data/themes/changing_theme.json"), "w") as f:
             json.dump(theme, f, indent=2)
         
         self.preview_image_select.rebuild_from_changed_theme_data()
@@ -1280,10 +1291,10 @@ class App:
                                                              "zoom_level":self.panning_zoom_level}
                     self.panning_delete_btn.enable()
                     
-                    with open(f"themes/changing_theme.json", "r") as f:
+                    with open(os.path.join(self.application_path, "data/themes/changing_theme.json"), "r") as f:
                         theme = json.load(f)
                     theme[f"#Select_{os.path.basename(self.panning_image_path)}_btn"] = {"colours" : {"normal_bg":"rgb(255, 0, 0)"}}
-                    with open(f"themes/changing_theme.json", "w") as f:
+                    with open(os.path.join(self.application_path, "data/themes/changing_theme.json"), "w") as f:
                         json.dump(theme, f, indent=2)
                     
                     self.panning_save_msg.show()
@@ -1296,10 +1307,10 @@ class App:
                             del self.panning[self.panning_image_path]
                         self.panning_delete_btn.disable()
                     
-                        with open(f"themes/changing_theme.json", "r") as f:
+                        with open(os.path.join(self.application_path, "data/themes/changing_theme.json"), "r") as f:
                             theme = json.load(f)
                         theme[f"#Select_{os.path.basename(self.panning_image_path)}_btn"] = {"colours":{"normal_bg":"rgb(76, 80, 82)", "hovered_bg":"rgb(99, 104, 107)", "selected_bg":"rgb(54, 88, 128)", "active_bg":"rgb(54, 88, 128)"}}
-                        with open(f"themes/changing_theme.json", "w") as f:
+                        with open(os.path.join(self.application_path, "data/themes/changing_theme.json"), "w") as f:
                             json.dump(theme, f, indent=2)
                         
                         # with open(f"themes/changing_theme.json", "r") as f:
@@ -1687,18 +1698,7 @@ class App:
             
 
 
-
-
-
-
-
-
-
-
-
 if __name__ == "__main__":
-    
-    
     app = App()
     app.run()
     pygame.quit()

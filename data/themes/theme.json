@@ -3,10 +3,10 @@
         "font":{
             "name":"Helvetica",
             "size":"30",
-            "regular_path":"fonts/Helvetica-Font/Helvetica.ttf",
-            "bold_path":"fonts/Helvetica-Font/Helvetica-Bold.ttf",
-            "italic_path":"fonts/Helvetica-Font/Helvetica-Oblique.ttf",
-            "bold_italic_path":"fonts/Helvetica-Font/Helvetica-BoldOblique.ttf"
+            "regular_path":"_internal/data/fonts/Helvetica-Font/Helvetica.ttf",
+            "bold_path":"_internal/data/fonts/Helvetica-Font/Helvetica-Bold.ttf",
+            "italic_path":"_internal/data/fonts/Helvetica-Font/Helvetica-Oblique.ttf",
+            "bold_italic_path":"_internal/data/fonts/Helvetica-Font/Helvetica-BoldOblique.ttf"
         }
     },
     "@title":{
