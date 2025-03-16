@@ -530,7 +530,11 @@ class App:
         zoom_ratio = 1 + (self.panning_zoom_level-1) * zoom_ratio_per_level
         self.panning_selected_width, self.panning_selected_height = int(self.base_panning_selected_width * (1/zoom_ratio)), int(self.base_panning_selected_height * (1/zoom_ratio))
         
-        # 4. Crop image according to view pos and size
+        # 4. Move selecteed topleft if selected area is out of range
+        self.panning_selected_top_left = (min(self.panning_image.get_width() - self.panning_selected_width, self.panning_selected_top_left[0]), min(self.panning_image.get_height() - self.panning_selected_height, self.panning_selected_top_left[1]))
+        # print(self.panning_selected_top_left)
+        
+        # 4. Crop image according to selected pos and size
         panning_curr_image = panning_curr_image.subsurface(pygame.Rect(self.panning_selected_top_left, (self.panning_selected_width, self.panning_selected_height)))
         
         # 5. Calculate scaling ratio for display
@@ -770,7 +774,8 @@ class App:
             
             elif event.type == pygame.MOUSEMOTION:
                 if self.panning_active and self.dragging:
-                    move = move_x, move_y = event.rel
+                    move_x, move_y = event.rel
+                    
                     
                     selected_x, selected_y = self.panning_selected_top_left
                     selected_w, selected_h = self.panning_selected_width, self.panning_selected_height
@@ -778,6 +783,25 @@ class App:
                     image_w, image_h = self.panning_image.get_width(), self.panning_image.get_height()
                     
                     display_w, display_h = self.panning_image_display_size
+                    
+                    move_x_ratio, move_y_ratio = selected_w / display_w, selected_h / display_h
+                    
+                    move_x = int(move_x * move_x_ratio)
+                    move_y = int(move_y * move_y_ratio)
+                    
+                    selected_x -= move_x
+                    selected_y -= move_y
+                    selected_x = max(0, min((image_w - selected_w), selected_x))
+                    selected_y = max(0, min((image_h - selected_h), selected_y))
+                    # print(selected_x, selected_y)
+                    
+                    self.panning_selected_top_left = (selected_x, selected_y)
+                    self.update_image_display()
+            
+                    
+                    
+                    
+                    
                     
                     
             
