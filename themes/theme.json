@@ -81,5 +81,10 @@
         "misc":{
             "border_width":"1"
         }
+    }, 
+    "@export_info_label":{
+        "misc":{
+            "text_horiz_alignment":"left"
+        }
     }
 }
