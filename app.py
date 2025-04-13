@@ -329,49 +329,49 @@ class App:
         )
         self.resolution_preset_360p_btn = pygame_gui.elements.UIButton(
             relative_rect=pygame.Rect(20, 0, 50, 50), 
-            text="360p", 
+            text="360", 
             manager=self.manager, 
             container=self.scene2_options_screen, 
             anchors={"left":"left", "top":"top", "top_target":self.resolution_aspect_ratio_menu, "left_target":self.resolution_preset_first_image_btn}
         )
         self.resolution_preset_SD_btn = pygame_gui.elements.UIButton(
             relative_rect=pygame.Rect(20, 0, 50, 50), 
-            text="SD", 
+            text="480", 
             manager=self.manager, 
             container=self.scene2_options_screen, 
             anchors={"left":"left", "top":"top", "top_target":self.resolution_aspect_ratio_menu, "left_target":self.resolution_preset_360p_btn}
         )
         self.resolution_preset_720p_btn = pygame_gui.elements.UIButton(
             relative_rect=pygame.Rect(20, 0, 50, 50), 
-            text="720p", 
+            text="720", 
             manager=self.manager, 
             container=self.scene2_options_screen, 
             anchors={"left":"left", "top":"top", "top_target":self.resolution_aspect_ratio_menu, "left_target":self.resolution_preset_SD_btn}
         )
         self.resolution_preset_FHD_btn = pygame_gui.elements.UIButton(
             relative_rect=pygame.Rect(20, 0, 50, 50), 
-            text="FHD", 
+            text="1080", 
             manager=self.manager, 
             container=self.scene2_options_screen, 
             anchors={"left":"left", "top":"top", "top_target":self.resolution_aspect_ratio_menu, "left_target":self.resolution_preset_720p_btn}
         )
         self.resolution_preset_QHD_btn = pygame_gui.elements.UIButton(
             relative_rect=pygame.Rect(20, 0, 50, 50), 
-            text="QHD", 
+            text="1440", 
             manager=self.manager, 
             container=self.scene2_options_screen, 
             anchors={"left":"left", "top":"top", "top_target":self.resolution_aspect_ratio_menu, "left_target":self.resolution_preset_FHD_btn}
         )
         self.resolution_preset_4K_btn = pygame_gui.elements.UIButton(
             relative_rect=pygame.Rect(20, 0, 50, 50), 
-            text="4K", 
+            text="2160", 
             manager=self.manager, 
             container=self.scene2_options_screen, 
             anchors={"left":"left", "top":"top", "top_target":self.resolution_aspect_ratio_menu, "left_target":self.resolution_preset_QHD_btn}
         )
         self.resolution_preset_8K_btn = pygame_gui.elements.UIButton(
             relative_rect=pygame.Rect(20, 0, 50, 50), 
-            text="8K", 
+            text="4320", 
             manager=self.manager, 
             container=self.scene2_options_screen, 
             anchors={"left":"left", "top":"top", "top_target":self.resolution_aspect_ratio_menu, "left_target":self.resolution_preset_4K_btn}
