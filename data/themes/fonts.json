@@ -1,0 +1,12 @@
+{
+  "label": {
+    "font": {
+      "name": "Helvetica",
+      "size": "30",
+      "regular_path": "c:\\Users\\Michael\\Desktop\\coding\\time lapse video maker/data/fonts/Helvetica-Font/Helvetica.ttf",
+      "bold_path": "c:\\Users\\Michael\\Desktop\\coding\\time lapse video maker/data/fonts/Helvetica-Font/Helvetica-Bold.ttf",
+      "italic_path": "c:\\Users\\Michael\\Desktop\\coding\\time lapse video maker/data/fonts/Helvetica-Font/Helvetica-Oblique.ttf",
+      "bold_italic_path": "c:\\Users\\Michael\\Desktop\\coding\\time lapse video maker/data/fonts/Helvetica-Font/Helvetica-BoldOblique.ttf"
+    }
+  }
+}

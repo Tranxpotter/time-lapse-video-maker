@@ -47,14 +47,31 @@ class App:
         self.zoom_ratio_per_level = 0.03
         self.exporting = False
         
-        #Pygame GUI basic setups
-        self.manager = pygame_gui.UIManager(WINDOW_SIZE, theme_path=os.path.join(self.application_path, "data/themes/theme.json"))
         
+        #fonts path setup
+        with open(os.path.join(self.application_path, "data/themes/paths.json"), "r") as f:
+            paths = json.load(f)
+        
+        for k in paths:
+            paths[k] = self.application_path + "/" + paths[k]
+        
+        with open(os.path.join(self.application_path, "data/themes/fonts.json"), "r") as f:
+            data = json.load(f)
+        
+        data["label"]["font"] |= paths
+        with open(os.path.join(self.application_path, "data/themes/fonts.json"), "w") as f:
+            json.dump(data, f, indent=2)
+        
+        
+        #Pygame GUI basic setups
+        self.manager = pygame_gui.UIManager(WINDOW_SIZE, theme_path=os.path.join(self.application_path, "data/themes/fonts.json"))
+        self.manager.get_theme().load_theme(os.path.join(self.application_path, "data/themes/theme.json"))
         #Reset changing theme
         with open(os.path.join(self.application_path, "data/themes/changing_theme.json"), "w") as f:
             json.dump({}, f, indent=2)
         self.manager.get_theme().load_theme(os.path.join(self.application_path, "data/themes/changing_theme.json"))
 
+        
         
         self.scene1()
     
@@ -761,6 +778,8 @@ class App:
             anchors={"left":"left", "top":"top", "top_target":self.preview_video_entry, "left_target":self.preview_forward_btn}, 
             object_id=ObjectID(class_id="@video_control_btn", object_id="#preview_skip_forward_btn")
         )
+        
+        # todo: Add fast play? like show only 1 in 10 photos type speed up
         
         self.preview_image_name_label = pygame_gui.elements.UILabel(
             relative_rect=pygame.Rect(0, 0, 300, 50), 

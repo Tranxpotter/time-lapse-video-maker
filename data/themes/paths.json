@@ -1,0 +1,6 @@
+{    
+    "regular_path":"data/fonts/Helvetica-Font/Helvetica.ttf",
+    "bold_path":"data/fonts/Helvetica-Font/Helvetica-Bold.ttf",
+    "italic_path":"data/fonts/Helvetica-Font/Helvetica-Oblique.ttf",
+    "bold_italic_path":"data/fonts/Helvetica-Font/Helvetica-BoldOblique.ttf"
+}
