@@ -6,15 +6,17 @@ import threading
 import sys
 
 import pygame
-import pygame_gui.core.object_id
 pygame.init()
 import pygame_gui
 from pygame_gui.core import ObjectID
 
 import cv2
 
+
+
 WINDOW_SIZE = (1080, 720)
-VALID_FILE_TYPES = ["jpg", "jpeg", "png", "bmp", "tiff", "tif", "cr2", "JPG", "JPEG", "PNG", "BMP", "TIFF", "TIF", "CR2"]
+VALID_FILE_TYPES = ["jpg", "jpeg", "png", "bmp", "tiff", "tif", "JPG", "JPEG", "PNG", "BMP", "TIFF", "TIF"]
+RAW_EXT = ["cr2", "CR2"]
 
 
 
@@ -148,7 +150,8 @@ class App:
         
         
         for file in sorted(os.listdir(self.folder_path)):
-            if file.split(".")[-1] in VALID_FILE_TYPES:
+            ext = file.split(".")[-1]
+            if ext in VALID_FILE_TYPES:
                 self.image_paths.append(os.path.join(self.folder_path, file))
         
 
