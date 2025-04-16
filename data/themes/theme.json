@@ -76,5 +76,10 @@
         "misc":{
             "text_horiz_alignment":"left"
         }
+    }, 
+    "#scene1_instructions":{
+        "font":{
+            "size":"20"
+        }
     }
 }

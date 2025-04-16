@@ -16,7 +16,6 @@ import cv2
 
 WINDOW_SIZE = (1080, 720)
 VALID_FILE_TYPES = ["jpg", "jpeg", "png", "bmp", "tiff", "tif", "JPG", "JPEG", "PNG", "BMP", "TIFF", "TIF"]
-RAW_EXT = ["cr2", "CR2"]
 
 
 
@@ -139,6 +138,15 @@ class App:
             object_id=ObjectID(class_id="@error_msg", object_id="#scene1_error_msg")
         )
         self.scene1_error_msg.hide()
+        
+        pygame_gui.elements.UILabel(
+            relative_rect=pygame.Rect(0, 0, 1080, 50),
+            text='Choose a file within a folder, the rest of the images in the folder will be automatically included.',
+            manager=self.manager,
+            container=input_frame, 
+            anchors={"left":"left", "top":"top", "top_target":self.scene1_error_msg}, 
+            object_id=ObjectID(class_id="@label", object_id="#scene1_instructions")
+        )
     
     
     def scene2(self):
@@ -219,6 +227,8 @@ class App:
         self.first_img_width, self.first_img_height = first_image.get_width(), first_image.get_height()
         self.video_resolution = (int(self.first_img_width), int(self.first_img_height))
         self.aspect_ratio = "Custom"
+        self.anti_flickering = "Off"
+        self.anti_flickering_sample_size = "7"
         
         #Panning screen
         self.panning = dict() #For storing panning results
@@ -429,24 +439,44 @@ class App:
             anchors={"left":"left", "top":"top", "top_target":self.video_length_label}, 
             object_id=ObjectID(class_id="@error_msg", object_id="#fps_error_msg")
         )
-
-        self.smoothing_label = pygame_gui.elements.UILabel(
+        
+        #Anti flickering stuff
+        self.anti_flickering_label = pygame_gui.elements.UILabel(
             relative_rect=pygame.Rect(0, 0, 150, 50),
-            text='Smoothing:', 
+            text='Anti-flickering:', 
             manager=self.manager, 
             container=self.scene2_options_screen, 
             anchors={"left":"left", "top":"top", "top_target":self.fps_error_msg},
-            object_id=ObjectID(class_id="@label", object_id="#smoothing_label")
+            object_id=ObjectID(class_id="@label", object_id="#anti_flickering")
         )
         
-        self.smoothing_selector = pygame_gui.elements.UIDropDownMenu(
+        self.anti_flickering_selector = pygame_gui.elements.UIDropDownMenu(
             relative_rect=pygame.Rect(0, 0, 200, 50),
             manager=self.manager, 
             container=self.scene2_options_screen, 
-            anchors={"left":"left", "top":"top", "top_target":self.fps_error_msg, "left_target":self.smoothing_label}, 
-            object_id=ObjectID(class_id="@option_entry", object_id="#smoothing_selector"),
+            anchors={"left":"left", "top":"top", "top_target":self.fps_error_msg, "left_target":self.anti_flickering_label}, 
+            object_id=ObjectID(class_id="@option_entry", object_id="#anti_flickering_selector"),
             options_list=["On", "Off"], 
-            starting_option="Off"
+            starting_option=self.anti_flickering
+        )
+        
+        self.anti_flickering_sample_size_label = pygame_gui.elements.UILabel(
+            relative_rect=pygame.Rect(50, 0, 150, 50),
+            text='Sample Size:', 
+            manager=self.manager, 
+            container=self.scene2_options_screen, 
+            anchors={"left":"left", "top":"top", "top_target":self.fps_error_msg, "left_target":self.anti_flickering_selector},
+            object_id=ObjectID(class_id="@label", object_id="#anti_flickering")
+        )
+        
+        self.anti_flickering_sample_size_selector = pygame_gui.elements.UIDropDownMenu(
+            relative_rect=pygame.Rect(0, 0, 200, 50),
+            manager=self.manager, 
+            container=self.scene2_options_screen, 
+            anchors={"left":"left", "top":"top", "top_target":self.fps_error_msg, "left_target":self.anti_flickering_sample_size_label}, 
+            object_id=ObjectID(class_id="@option_entry", object_id="#anti_flickering_sample_size_selector"),
+            options_list=["3", "5", "7", "9", "11"], 
+            starting_option=self.anti_flickering_sample_size
         )
         
         
@@ -901,6 +931,27 @@ class App:
             anchors = {"left":"left", "top":"top", "top_target":self.export_video_img_count_label}, 
             object_id=ObjectID(class_id="@export_info_label", object_id="#export_video_length_label")
         )
+        
+        self.export_video_anti_flickering_label = pygame_gui.elements.UILabel(
+            relative_rect=pygame.Rect(30, 0, 1050, 50), 
+            text=f"Anti-flickering: {self.anti_flickering}", 
+            manager = self.manager, 
+            container = self.scene2_export_screen, 
+            anchors = {"left":"left", "top":"top", "top_target":self.export_video_length_label}, 
+            object_id=ObjectID(class_id="@export_info_label", object_id="#export_video_anti_flickering_label")
+        )
+        next_target = self.export_video_anti_flickering_label
+        
+        if self.anti_flickering_selector.selected_option[0] == "On":
+            self.export_video_anti_flickering_sample_size_label = pygame_gui.elements.UILabel(
+                relative_rect=pygame.Rect(30, 0, 1050, 50), 
+                text=f"Anti-flickering Sample Size: {self.anti_flickering_sample_size}", 
+                manager = self.manager, 
+                container = self.scene2_export_screen, 
+                anchors = {"left":"left", "top":"top", "top_target":self.export_video_anti_flickering_label}, 
+                object_id=ObjectID(class_id="@export_info_label", object_id="#export_video_anti_flickering_sample_size_label")
+            )
+            next_target = self.export_video_anti_flickering_sample_size_label
 
         
         self.export_button = pygame_gui.elements.UIButton(
@@ -908,7 +959,7 @@ class App:
             text="Export", 
             manager = self.manager, 
             container = self.scene2_export_screen, 
-            anchors = {"centerx":"centerx", "top":"top", "top_target":self.export_video_length_label}, 
+            anchors = {"centerx":"centerx", "top":"top", "top_target":next_target}, 
             object_id=ObjectID(class_id="@button", object_id="#export_button")
         )
         
@@ -929,7 +980,29 @@ class App:
             )
             self.export_button.disable()
         
+    
+    def export_image_process(self, image, image_path, display_details):
+        topleft = display_details[image_path]["top_left"]
+        zoom_level = display_details[image_path]["zoom_level"]
         
+        image_height, image_width, channel = image.shape
+        
+
+        width_ratio = self.video_resolution[0] / image_width
+        height_ratio = self.video_resolution[1] / image_height
+        scaling_ratio = max(width_ratio, height_ratio)
+        image_base_width = int(self.video_resolution[0] / scaling_ratio)
+        image_base_height = int(self.video_resolution[1] / scaling_ratio)
+        
+        
+        zoom_ratio = 1 + (zoom_level-1) * self.zoom_ratio_per_level
+        crop_width, crop_height = int(image_base_width * (1/zoom_ratio)), int(image_base_height * (1/zoom_ratio))
+        
+        cropped_image = image[topleft[1]:topleft[1]+crop_height, topleft[0]:topleft[0]+crop_width]
+        resized_image = cv2.resize(cropped_image, self.video_resolution)
+        return resized_image
+        
+    
     
     def export_video(self, filepath):
         fourcc = cv2.VideoWriter_fourcc(*'mp4v')  # or use 'XVID' for .avi
@@ -937,28 +1010,45 @@ class App:
         display_details = self.panning_to_display_details()
         # print(display_details)
         
-        for index, image_path in enumerate(self.image_paths):
-            frame = cv2.imread(image_path)
-            topleft = display_details[image_path]["top_left"]
-            zoom_level = display_details[image_path]["zoom_level"]
+        if self.anti_flickering == "Off":
+        
+            for index, image_path in enumerate(self.image_paths):
+                frame = cv2.imread(image_path)
+                resized_frame = self.export_image_process(frame, image_path, display_details)
+                video.write(resized_frame)
+                self.export_progress_display.set_text(f"Export Progress: {index+1}/{len(self.image_paths)}")
+        
+        
+        else:
+            anti_flickering_sample_size = int(self.anti_flickering_sample_size)
+            first_frame_image_paths = self.image_paths[:(anti_flickering_sample_size+1)//2]
             
-            frame_height, frame_width, channel = frame.shape
-            
+            frame_images = [self.export_image_process(cv2.imread(img_path), img_path, display_details) for img_path in first_frame_image_paths]
 
-            width_ratio = self.video_resolution[0] / frame_width
-            height_ratio = self.video_resolution[1] / frame_height
-            scaling_ratio = max(width_ratio, height_ratio)
-            image_base_width = int(self.video_resolution[0] / scaling_ratio)
-            image_base_height = int(self.video_resolution[1] / scaling_ratio)
-            
-            
-            zoom_ratio = 1 + (zoom_level-1) * self.zoom_ratio_per_level
-            crop_width, crop_height = int(image_base_width * (1/zoom_ratio)), int(image_base_height * (1/zoom_ratio))
-            
-            cropped_frame = frame[topleft[1]:topleft[1]+crop_height, topleft[0]:topleft[0]+crop_width]
-            resized_frame = cv2.resize(cropped_frame, self.video_resolution)
-            video.write(resized_frame)
-            self.export_progress_display.set_text(f"Export Progress: {index+1}/{len(self.image_paths)}")
+            for frame_index in range(len(self.image_paths)):
+                frame = frame_images[0]
+                for i in range(len(frame_images)):
+                    if i == 0:
+                        continue
+                    beta = 1.0/(i+1)
+                    
+                    alpha = 1.0 - beta
+                    
+                    frame = cv2.addWeighted(frame, alpha, frame_images[i], beta, 0.0)
+                video.write(frame)
+                
+                if frame_index >= (anti_flickering_sample_size + 1) // 2:
+                    frame_images.pop(0)
+                if frame_index <= len(self.image_paths) - anti_flickering_sample_size:
+                    new_image_path = self.image_paths[frame_index + (anti_flickering_sample_size+1)//2]
+                    frame_images.append(self.export_image_process(cv2.imread(new_image_path), new_image_path, display_details))
+                
+                
+
+                self.export_progress_display.set_text(f"Export Progress: {frame_index+1}/{len(self.image_paths)}")
+    
+        
+        
         
         
         
@@ -1635,7 +1725,14 @@ class App:
                             self.resolution_error_msg.show()
                         else:
                             self.resolution_error_msg.hide()
-            
+
+                
+                elif hasattr(self, "anti_flickering_selector") and event.ui_element == self.anti_flickering_selector:
+                    self.anti_flickering = self.anti_flickering_selector.selected_option[0]
+                
+                elif hasattr(self, "anti_flickering_sample_size_selector") and event.ui_element == self.anti_flickering_sample_size_selector:
+                    self.anti_flickering_sample_size = self.anti_flickering_sample_size_selector.selected_option[0]
+                    
             
             
             #Mouse click events
