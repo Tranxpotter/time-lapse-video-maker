@@ -45,7 +45,7 @@ class App:
         self.panning_active = False
         self.dragging = False
         self.preview_playing = False
-        self.zoom_ratio_per_level = 0.03
+        self.zoom_ratio_per_level = 0.02
         self.exporting = False
         
         
@@ -1001,8 +1001,8 @@ class App:
         image_base_height = int(self.video_resolution[1] / scaling_ratio)
         
         
-        zoom_ratio = 1 + (zoom_level-1) * self.zoom_ratio_per_level
-        crop_width, crop_height = int(image_base_width * (1/zoom_ratio)), int(image_base_height * (1/zoom_ratio))
+        zoom_ratio = 1 - (zoom_level-1) * self.zoom_ratio_per_level
+        crop_width, crop_height = int(image_base_width * zoom_ratio), int(image_base_height * zoom_ratio)
         
         cropped_image = image[topleft[1]:topleft[1]+crop_height, topleft[0]:topleft[0]+crop_width]
         resized_image = cv2.resize(cropped_image, self.video_resolution)
