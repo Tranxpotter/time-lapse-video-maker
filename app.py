@@ -45,7 +45,7 @@ class App:
         self.panning_active = False
         self.dragging = False
         self.preview_playing = False
-        self.zoom_ratio_per_level = 0.03
+        self.zoom_ratio_per_level = 0.02
         self.exporting = False
         
         
@@ -660,6 +660,10 @@ class App:
         self.panning_update_image_display()
     
     
+    def calc_zoom_value(self, zoom:int, val:int|float):
+        zoom_ratio = 1 - (zoom-1) * self.zoom_ratio_per_level
+        return int(val * zoom_ratio)
+    
     
     def panning_update_image_display(self):
         self.panning_save_msg.hide()
@@ -671,8 +675,7 @@ class App:
         panning_curr_image = self.panning_image
         
         # 3. Calculate width and height from zoom level
-        zoom_ratio = 1 + (self.panning_zoom_level-1) * self.zoom_ratio_per_level
-        self.panning_selected_width, self.panning_selected_height = int(self.base_panning_selected_width * (1/zoom_ratio)), int(self.base_panning_selected_height * (1/zoom_ratio))
+        self.panning_selected_width, self.panning_selected_height = self.calc_zoom_value(self.panning_zoom_level, self.base_panning_selected_width), self.calc_zoom_value(self.panning_zoom_level, self.base_panning_selected_height)
         
         # 4. Move selecteed topleft if selected area is out of range
         self.panning_selected_top_left = (min(self.panning_image.get_width() - self.panning_selected_width, self.panning_selected_top_left[0]), min(self.panning_image.get_height() - self.panning_selected_height, self.panning_selected_top_left[1]))
@@ -833,7 +836,24 @@ class App:
         self.preview_display_details = self.panning_to_display_details()
         self.preview_show_image(self.image_paths[0])
         
+    
+    def get_topleft_from_relc(self, relative_center:tuple[float, float], image_width, image_height, base_width, base_height, crop_width, crop_height):
+        # Get topleft from relative_center
+        center_x = relative_center[0] * base_width
+        center_y = relative_center[1] * base_height
+        topleft_x = int(center_x - crop_width // 2)
+        topleft_y = int(center_y - crop_height // 2)
         
+        
+        # Move the minimum to fit image if area is out of range
+        if topleft_x + crop_width >= image_width:
+            topleft_x = image_width - crop_width
+        if topleft_y + crop_height >= image_height:
+            topleft_y = image_height - crop_height
+        
+        topleft = (topleft_x, topleft_y)
+        return topleft
+    
         
     def preview_show_image(self, image_path):
         with open(os.path.join(self.application_path, "data/themes/changing_theme.json"), "r") as f:
@@ -859,11 +879,15 @@ class App:
         image_base_height = int(self.video_resolution[1] / scaling_ratio)
         
         display_details = self.preview_display_details[image_path]
-        topleft = display_details["top_left"]
-        zoom_level = display_details["zoom_level"]
+        # topleft = display_details["top_left"]
+        relative_center = display_details["relative_center"]
         
-        zoom_ratio = 1 + (zoom_level-1) * self.zoom_ratio_per_level
-        crop_width, crop_height = int(image_base_width * (1/zoom_ratio)), int(image_base_height * (1/zoom_ratio))
+        
+        zoom_level = display_details["zoom_level"]
+        crop_width, crop_height = self.calc_zoom_value(zoom_level, image_base_width), self.calc_zoom_value(zoom_level, image_base_height)
+        # print(topleft, crop_width, crop_height, image_base_width, image_base_height)
+        
+        topleft = self.get_topleft_from_relc(relative_center, preview_image.get_width(), preview_image.get_height(), image_base_width, image_base_height, crop_width, crop_height)
         
         preview_image = preview_image.subsurface(pygame.Rect((topleft), (crop_width, crop_height)))
         preview_image = pygame.transform.scale(preview_image, self.video_resolution)
@@ -988,7 +1012,8 @@ class App:
         
     
     def export_image_process(self, image, image_path, display_details):
-        topleft = display_details[image_path]["top_left"]
+        # topleft = display_details[image_path]["top_left"]
+        relative_center = display_details[image_path]["relative_center"]
         zoom_level = display_details[image_path]["zoom_level"]
         
         image_height, image_width, channel = image.shape
@@ -1000,9 +1025,9 @@ class App:
         image_base_width = int(self.video_resolution[0] / scaling_ratio)
         image_base_height = int(self.video_resolution[1] / scaling_ratio)
         
+        crop_width, crop_height = self.calc_zoom_value(zoom_level, image_base_width), self.calc_zoom_value(zoom_level, image_base_height)
         
-        zoom_ratio = 1 + (zoom_level-1) * self.zoom_ratio_per_level
-        crop_width, crop_height = int(image_base_width * (1/zoom_ratio)), int(image_base_height * (1/zoom_ratio))
+        topleft = self.get_topleft_from_relc(relative_center, image_width, image_height, image_base_width, image_base_height, crop_width, crop_height)
         
         cropped_image = image[topleft[1]:topleft[1]+crop_height, topleft[0]:topleft[0]+crop_width]
         resized_image = cv2.resize(cropped_image, self.video_resolution)
@@ -1084,14 +1109,16 @@ class App:
     
     
     def panning_to_display_details(self):
-        '''Return display details of each image from panning details'''
+        '''Return display details of each image from panning details
+        
+        The cropping area calculated from display details may not be within the image size, must check for overflow and move the area by the minimum amount'''
         
         display_details = {}
         panning = dict(sorted(self.panning.items(), key=lambda x:x[0]))
         if panning:
             panning_keys = list(panning.keys())
             if not panning:
-                panning[self.image_paths[-1]] = {"top_left":(0, 0), "zoom_level":1}
+                panning[self.image_paths[-1]] = {"top_left":(0, 0), "relative_center":(0.5, 0.5), "zoom_level":1}
             elif panning_keys[-1] != self.image_paths[-1]:
                 panning[self.image_paths[-1]] = panning[list(panning.keys())[-1]]
             panning_keys = list(panning.keys())
@@ -1100,48 +1127,48 @@ class App:
             panning_key_index = 0
             next_panning = panning[next_image_path]
             next_image_index = self.image_paths.index(panning_keys[0])
-            next_topleft = next_panning["top_left"]
+            next_rel_center = next_panning["relative_center"]
             next_zoom_level = next_panning["zoom_level"]
             if next_image_index == 0:
-                curr_topleft = next_topleft
+                curr_rel_center = next_rel_center
                 curr_zoom_level = next_zoom_level
-                topleft_x_change = 0
-                topleft_y_change = 0
+                rel_center_x_change = 0
+                rel_center_y_change = 0
                 zoom_level_change = 0
             else:
-                curr_topleft = (0, 0)
                 curr_zoom_level = 1
-                topleft_x_change = (next_topleft[0] - curr_topleft[0]) / next_image_index
-                topleft_y_change = (next_topleft[1] - curr_topleft[1]) / next_image_index
+                curr_rel_center = (0.5, 0.5)
+                rel_center_x_change = (next_rel_center[0] - curr_rel_center[0]) / next_image_index
+                rel_center_y_change = (next_rel_center[1] - curr_rel_center[1]) / next_image_index
                 zoom_level_change = (next_zoom_level - curr_zoom_level) / next_image_index
             counter = 0
             curr_image_index = 0
 
             
             for image_path in self.image_paths:
-                display_details[image_path] = {"top_left":(round(curr_topleft[0] + topleft_x_change*counter), round(curr_topleft[1] + topleft_y_change*counter)), 
+                display_details[image_path] = {"relative_center":(curr_rel_center[0] + rel_center_x_change*counter, curr_rel_center[1] + rel_center_y_change*counter), 
                                             "zoom_level":(curr_zoom_level + zoom_level_change*counter)}
                 
                 if image_path == next_image_path and panning_key_index + 1 < len(panning):
                     counter = 0
-                    curr_topleft = next_topleft
+                    curr_rel_center = next_rel_center
                     curr_zoom_level = next_zoom_level
                     curr_image_index = next_image_index
                     panning_key_index += 1
                     next_image_path = panning_keys[panning_key_index]
                     next_panning = panning[next_image_path]
                     next_image_index = self.image_paths.index(next_image_path)
-                    next_topleft = next_panning["top_left"]
+                    next_rel_center = next_panning["relative_center"]
                     next_zoom_level = next_panning["zoom_level"]
-                    topleft_x_change = (next_topleft[0] - curr_topleft[0]) / (next_image_index - curr_image_index)
-                    topleft_y_change = (next_topleft[1] - curr_topleft[1]) / (next_image_index - curr_image_index)
+                    rel_center_x_change = (next_rel_center[0] - curr_rel_center[0]) / (next_image_index - curr_image_index)
+                    rel_center_y_change = (next_rel_center[1] - curr_rel_center[1]) / (next_image_index - curr_image_index)
                     zoom_level_change = (next_zoom_level - curr_zoom_level) / (next_image_index - curr_image_index)
                 
                 else:
                     counter += 1
         else:
             for image_path in self.image_paths:
-                display_details[image_path] = {"top_left":(0, 0), "zoom_level":1}
+                display_details[image_path] = {"top_left":(0, 0), "relative_center":(0.5, 0.5), "zoom_level":1}
         
         return display_details
             
@@ -1405,8 +1432,13 @@ class App:
                 
                 
                 elif hasattr(self, "panning_save_btn") and event.ui_element == self.panning_save_btn:
+                    center = (self.panning_selected_top_left[0] + self.panning_selected_width//2, self.panning_selected_top_left[1] + self.panning_selected_height//2)
+                    relative_center = (center[0] / self.base_panning_selected_width, center[1] / self.base_panning_selected_height)
                     self.panning[self.panning_image_path] = {"top_left":self.panning_selected_top_left, 
+                                                            #  "center":center, 
+                                                             "relative_center":relative_center,
                                                              "zoom_level":self.panning_zoom_level}
+                    # print("center, relative center:", center, relative_center)
                     self.panning_delete_btn.enable()
                     
                     with open(os.path.join(self.application_path, "data/themes/changing_theme.json"), "r") as f:
