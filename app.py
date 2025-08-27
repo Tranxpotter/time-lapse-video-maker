@@ -1127,39 +1127,30 @@ class App:
             panning_key_index = 0
             next_panning = panning[next_image_path]
             next_image_index = self.image_paths.index(panning_keys[0])
-            next_topleft = next_panning["top_left"]
             next_rel_center = next_panning["relative_center"]
             next_zoom_level = next_panning["zoom_level"]
             if next_image_index == 0:
-                curr_topleft = next_topleft
                 curr_rel_center = next_rel_center
                 curr_zoom_level = next_zoom_level
                 rel_center_x_change = 0
                 rel_center_y_change = 0
-                topleft_x_change = 0
-                topleft_y_change = 0
                 zoom_level_change = 0
             else:
-                curr_topleft = (0, 0)
                 curr_zoom_level = 1
                 curr_rel_center = (0.5, 0.5)
                 rel_center_x_change = (next_rel_center[0] - curr_rel_center[0]) / next_image_index
                 rel_center_y_change = (next_rel_center[1] - curr_rel_center[1]) / next_image_index
-                topleft_x_change = (next_topleft[0] - curr_topleft[0]) / next_image_index
-                topleft_y_change = (next_topleft[1] - curr_topleft[1]) / next_image_index
                 zoom_level_change = (next_zoom_level - curr_zoom_level) / next_image_index
             counter = 0
             curr_image_index = 0
 
             
             for image_path in self.image_paths:
-                display_details[image_path] = {"top_left":(round(curr_topleft[0] + topleft_x_change*counter), round(curr_topleft[1] + topleft_y_change*counter)), 
-                                               "relative_center":(curr_rel_center[0] + rel_center_x_change*counter, curr_rel_center[1] + rel_center_y_change*counter), 
+                display_details[image_path] = {"relative_center":(curr_rel_center[0] + rel_center_x_change*counter, curr_rel_center[1] + rel_center_y_change*counter), 
                                             "zoom_level":(curr_zoom_level + zoom_level_change*counter)}
                 
                 if image_path == next_image_path and panning_key_index + 1 < len(panning):
                     counter = 0
-                    curr_topleft = next_topleft
                     curr_rel_center = next_rel_center
                     curr_zoom_level = next_zoom_level
                     curr_image_index = next_image_index
@@ -1167,11 +1158,8 @@ class App:
                     next_image_path = panning_keys[panning_key_index]
                     next_panning = panning[next_image_path]
                     next_image_index = self.image_paths.index(next_image_path)
-                    next_topleft = next_panning["top_left"]
                     next_rel_center = next_panning["relative_center"]
                     next_zoom_level = next_panning["zoom_level"]
-                    topleft_x_change = (next_topleft[0] - curr_topleft[0]) / (next_image_index - curr_image_index)
-                    topleft_y_change = (next_topleft[1] - curr_topleft[1]) / (next_image_index - curr_image_index)
                     rel_center_x_change = (next_rel_center[0] - curr_rel_center[0]) / (next_image_index - curr_image_index)
                     rel_center_y_change = (next_rel_center[1] - curr_rel_center[1]) / (next_image_index - curr_image_index)
                     zoom_level_change = (next_zoom_level - curr_zoom_level) / (next_image_index - curr_image_index)
@@ -1447,10 +1435,10 @@ class App:
                     center = (self.panning_selected_top_left[0] + self.panning_selected_width//2, self.panning_selected_top_left[1] + self.panning_selected_height//2)
                     relative_center = (center[0] / self.base_panning_selected_width, center[1] / self.base_panning_selected_height)
                     self.panning[self.panning_image_path] = {"top_left":self.panning_selected_top_left, 
-                                                             "center":center, 
+                                                            #  "center":center, 
                                                              "relative_center":relative_center,
                                                              "zoom_level":self.panning_zoom_level}
-                    print("center, relative center:", center, relative_center)
+                    # print("center, relative center:", center, relative_center)
                     self.panning_delete_btn.enable()
                     
                     with open(os.path.join(self.application_path, "data/themes/changing_theme.json"), "r") as f:
