@@ -660,6 +660,10 @@ class App:
         self.panning_update_image_display()
     
     
+    def calc_zoom_value(self, zoom:int, val:int|float):
+        zoom_ratio = 1 - (zoom-1) * self.zoom_ratio_per_level
+        return int(val * zoom_ratio)
+    
     
     def panning_update_image_display(self):
         self.panning_save_msg.hide()
@@ -671,8 +675,7 @@ class App:
         panning_curr_image = self.panning_image
         
         # 3. Calculate width and height from zoom level
-        zoom_ratio = 1 + (self.panning_zoom_level-1) * self.zoom_ratio_per_level
-        self.panning_selected_width, self.panning_selected_height = int(self.base_panning_selected_width * (1/zoom_ratio)), int(self.base_panning_selected_height * (1/zoom_ratio))
+        self.panning_selected_width, self.panning_selected_height = self.calc_zoom_value(self.panning_zoom_level, self.base_panning_selected_width), self.calc_zoom_value(self.panning_zoom_level, self.base_panning_selected_height)
         
         # 4. Move selecteed topleft if selected area is out of range
         self.panning_selected_top_left = (min(self.panning_image.get_width() - self.panning_selected_width, self.panning_selected_top_left[0]), min(self.panning_image.get_height() - self.panning_selected_height, self.panning_selected_top_left[1]))
@@ -862,9 +865,8 @@ class App:
         topleft = display_details["top_left"]
         zoom_level = display_details["zoom_level"]
         
-        zoom_ratio = 1 + (zoom_level-1) * self.zoom_ratio_per_level
-        crop_width, crop_height = int(image_base_width * (1/zoom_ratio)), int(image_base_height * (1/zoom_ratio))
-        
+        crop_width, crop_height = self.calc_zoom_value(zoom_level, image_base_width), self.calc_zoom_value(zoom_level, image_base_height)
+        # print(topleft, crop_width, crop_height, image_base_width, image_base_height)
         preview_image = preview_image.subsurface(pygame.Rect((topleft), (crop_width, crop_height)))
         preview_image = pygame.transform.scale(preview_image, self.video_resolution)
         
@@ -1000,9 +1002,7 @@ class App:
         image_base_width = int(self.video_resolution[0] / scaling_ratio)
         image_base_height = int(self.video_resolution[1] / scaling_ratio)
         
-        
-        zoom_ratio = 1 - (zoom_level-1) * self.zoom_ratio_per_level
-        crop_width, crop_height = int(image_base_width * zoom_ratio), int(image_base_height * zoom_ratio)
+        crop_width, crop_height = self.calc_zoom_value(zoom_level, image_base_width), self.calc_zoom_value(zoom_level, image_base_height)
         
         cropped_image = image[topleft[1]:topleft[1]+crop_height, topleft[0]:topleft[0]+crop_width]
         resized_image = cv2.resize(cropped_image, self.video_resolution)
