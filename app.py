@@ -76,6 +76,12 @@ class App:
         
         self.scene1()
     
+    def load_image(self, image_path):
+        img = cv2.imread(image_path)
+        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+        surface = pygame.surfarray.make_surface(img.swapaxes(0, 1))
+        return surface
+    
     def scene1(self):
         self.manager.clear_and_reset()
         
@@ -223,7 +229,7 @@ class App:
         #Initialize variables
         #Option screen
         self.fps = 30
-        first_image = pygame.image.load(self.image_paths[0])
+        first_image = self.load_image(self.image_paths[0])
         self.first_img_width, self.first_img_height = first_image.get_width(), first_image.get_height()
         self.video_resolution = (int(self.first_img_width), int(self.first_img_height))
         self.aspect_ratio = "Custom"
@@ -628,7 +634,7 @@ class App:
     def panning_initialize_image_display(self, image_path):
         # Load image
         self.panning_image_path = image_path
-        self.panning_image = pygame.image.load(image_path)
+        self.panning_image = self.load_image(image_path)
         
         width_ratio = self.video_resolution[0] / self.panning_image.get_width()
         height_ratio = self.video_resolution[1] / self.panning_image.get_height()
@@ -845,7 +851,7 @@ class App:
         self.preview_showing_image_path = image_path
         if hasattr(self, "preview_image_display"):
             self.preview_image_display.kill()
-        preview_image = pygame.image.load(image_path)
+        preview_image = self.load_image(image_path)
         width_ratio = self.video_resolution[0] / preview_image.get_width()
         height_ratio = self.video_resolution[1] / preview_image.get_height()
         scaling_ratio = max(width_ratio, height_ratio)
