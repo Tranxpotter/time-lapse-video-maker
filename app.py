@@ -580,21 +580,13 @@ class App:
             object_id=ObjectID(class_id="@option_entry", object_id="#panning_zoom_entry")
         )
         
-        self.panning_reset_btn = pygame_gui.elements.UIButton(
-            relative_rect=pygame.Rect(0, 20, 100, 50),
-            text='Reset',
-            manager=self.manager, 
-            container=self.scene2_panning_screen, 
-            anchors={"left":"left", "top":"top", "top_target":self.zoom_slider}, 
-            object_id=ObjectID(class_id="@button", object_id="#panning_reset_btn")
-        )
         
         self.panning_save_btn = pygame_gui.elements.UIButton(
             relative_rect=pygame.Rect(0, 20, 100, 50),
             text='Save',
             manager=self.manager, 
             container=self.scene2_panning_screen, 
-            anchors={"left":"left", "top":"top", "left_target":self.panning_reset_btn, "top_target":self.zoom_slider}, 
+            anchors={"left":"left", "top":"top", "top_target":self.zoom_slider}, 
             object_id=ObjectID(class_id="@button", object_id="#panning_save_btn")
         )
         
@@ -635,6 +627,24 @@ class App:
         self.panning_initialize_image_display(self.image_paths[self.curr_panning_index])
     
     
+    def save_panning(self):
+        center = (self.panning_selected_top_left[0] + self.panning_selected_width//2, self.panning_selected_top_left[1] + self.panning_selected_height//2)
+        relative_center = (center[0] / self.base_panning_selected_width, center[1] / self.base_panning_selected_height)
+        is_update = self.panning_image_path in self.panning
+        self.panning[self.panning_image_path] = {"top_left":self.panning_selected_top_left, 
+                                                #  "center":center, 
+                                                    "relative_center":relative_center,
+                                                    "zoom_level":self.panning_zoom_level}
+        self.panning_delete_btn.enable()
+        
+        if not is_update:
+            with open(os.path.join(self.application_path, "data/themes/changing_theme.json"), "r") as f:
+                theme = json.load(f)
+            theme[f"#Select_{os.path.basename(self.panning_image_path)}_btn"] = {"colours" : {"normal_bg":"rgb(255, 0, 0)"}}
+            with open(os.path.join(self.application_path, "data/themes/changing_theme.json"), "w") as f:
+                json.dump(theme, f, indent=2)
+        
+        self.panning_save_msg.show()
     
     
     def panning_initialize_image_display(self, image_path):
@@ -651,18 +661,63 @@ class App:
         # 0. Get the panning information for the image
         if image_path not in self.panning:
             self.panning_selected_top_left = (0, 0)
-            self.panning_zoom_level = 1
+            self.change_curr_zoom(1)
             self.panning_delete_btn.disable()
         else:
             self.panning_selected_top_left = self.panning[image_path]["top_left"]
-            self.panning_zoom_level = self.panning[image_path]["zoom_level"]
+            self.change_curr_zoom(self.panning[image_path]["zoom_level"])
             self.panning_delete_btn.enable()
         
-        self.zoom_entry.set_text(str(self.panning_zoom_level))
-        self.zoom_slider.set_current_value(self.panning_zoom_level)
         
         
         self.panning_update_image_display()
+    
+    
+    def move_panning_selected_topleft(self, move_x, move_y):
+        '''Moves panning_selected_top_left by move_x and move_y amount, returns if the topleft coordinate changed
+        
+        Note that this does not update display image and save panning information'''
+        selected_x, selected_y = self.panning_selected_top_left
+        selected_w, selected_h = self.panning_selected_width, self.panning_selected_height
+        
+        image_w, image_h = self.panning_image.get_width(), self.panning_image.get_height()
+        
+        display_w, display_h = self.panning_scaled_width, self.panning_scaled_height
+        
+        move_x_ratio, move_y_ratio = selected_w / display_w, selected_h / display_h
+        
+        move_x = int(move_x * move_x_ratio)
+        move_y = int(move_y * move_y_ratio)
+        
+        selected_x -= move_x
+        selected_y -= move_y
+        selected_x = max(0, min((image_w - selected_w), selected_x))
+        selected_y = max(0, min((image_h - selected_h), selected_y))
+        
+        moved = not self.panning_selected_top_left == (selected_x, selected_y)
+        
+        self.panning_selected_top_left = (selected_x, selected_y)
+        
+        return moved
+    
+    
+    def change_curr_zoom(self, zoom_val:int, update_slider:bool = True):
+        '''Only changes the values and labels related to zoom and handle out of range, returns if zoom value changed. 
+        
+        Does not update image display and does not save panning information'''
+        zoom_val = min(50, zoom_val)
+        zoom_val = max(1, zoom_val)
+        if hasattr(self, "panning_zoom_level"):
+            changed = not self.panning_zoom_level == zoom_val
+        else:
+            changed = True
+        self.panning_zoom_level = zoom_val
+        if update_slider:
+            self.zoom_slider.set_current_value(zoom_val)
+        
+        self.zoom_entry.set_text(str(self.panning_zoom_level))
+        
+        return changed
     
     
     def calc_zoom_value(self, zoom:int, val:int|float):
@@ -1451,32 +1506,8 @@ class App:
                 
                 
                 #Panning screen button events
-                elif hasattr(self, "panning_reset_btn") and event.ui_element == self.panning_reset_btn:
-                    self.panning_selected_top_left = (0, 0)
-                    self.panning_zoom_level = 1
-                    self.zoom_entry.set_text(str(self.panning_zoom_level))
-                    self.zoom_slider.set_current_value(self.panning_zoom_level)
-                    
-                    self.panning_save_msg.hide()
-                    self.panning_update_image_display()
-                
-                
                 elif hasattr(self, "panning_save_btn") and event.ui_element == self.panning_save_btn:
-                    center = (self.panning_selected_top_left[0] + self.panning_selected_width//2, self.panning_selected_top_left[1] + self.panning_selected_height//2)
-                    relative_center = (center[0] / self.base_panning_selected_width, center[1] / self.base_panning_selected_height)
-                    self.panning[self.panning_image_path] = {"top_left":self.panning_selected_top_left, 
-                                                            #  "center":center, 
-                                                             "relative_center":relative_center,
-                                                             "zoom_level":self.panning_zoom_level}
-                    self.panning_delete_btn.enable()
-                    
-                    with open(os.path.join(self.application_path, "data/themes/changing_theme.json"), "r") as f:
-                        theme = json.load(f)
-                    theme[f"#Select_{os.path.basename(self.panning_image_path)}_btn"] = {"colours" : {"normal_bg":"rgb(255, 0, 0)"}}
-                    with open(os.path.join(self.application_path, "data/themes/changing_theme.json"), "w") as f:
-                        json.dump(theme, f, indent=2)
-                    
-                    self.panning_save_msg.show()
+                    self.save_panning()
                 
                 
                 elif hasattr(self, "panning_delete_btn") and event.ui_element == self.panning_delete_btn:
@@ -1492,14 +1523,15 @@ class App:
                         with open(os.path.join(self.application_path, "data/themes/changing_theme.json"), "w") as f:
                             json.dump(theme, f, indent=2)
                         
-                        # with open(f"themes/changing_theme.json", "r") as f:
-                        #     theme = json.load(f)
-                        # del theme[f"#Select_{os.path.basename(self.panning_image_path)}_btn"]
-                        # with open(f"themes/changing_theme.json", "w") as f:
-                        #     json.dump(theme, f, indent=2)
-                        # self.panning_image_select.rebuild_from_changed_theme_data()
+                        #Reset panning
+                        self.panning_selected_top_left = (0, 0)
+                        self.panning_zoom_level = 1
+                        self.zoom_entry.set_text(str(self.panning_zoom_level))
+                        self.zoom_slider.set_current_value(self.panning_zoom_level)
                         
                         self.panning_save_msg.hide()
+                        self.panning_update_image_display()
+                        
                     
                 
                 elif hasattr(self, "panning_exclude_image_btn") and event.ui_element == self.panning_exclude_image_btn:
@@ -1687,11 +1719,10 @@ class App:
                 elif hasattr(self, "zoom_entry") and event.ui_element == self.zoom_entry:
                     zoom = self.zoom_entry.get_text()
                     if zoom.isdigit():
-                        zoom = min(int(zoom), 50)
-                        zoom = max(zoom, 1)
-                        self.panning_zoom_level = zoom
-                        self.zoom_slider.set_current_value(self.panning_zoom_level)
-                        self.panning_update_image_display()
+                        changed = self.change_curr_zoom(int(zoom))
+                        if changed:
+                            self.panning_update_image_display()
+                            self.save_panning()
                 
                 
                 #Preview screen event
@@ -1710,9 +1741,10 @@ class App:
             #Horizontal slider event
             elif event.type == pygame_gui.UI_HORIZONTAL_SLIDER_MOVED:
                 if hasattr(self, "zoom_slider") and event.ui_element == self.zoom_slider:
-                    self.panning_zoom_level = int(self.zoom_slider.get_current_value())
-                    self.zoom_entry.set_text(str(self.panning_zoom_level))
-                    self.panning_update_image_display()
+                    changed = self.change_curr_zoom(int(self.zoom_slider.get_current_value()), update_slider=False)
+                    if changed:
+                        self.panning_update_image_display()
+                        self.save_panning()
             
             
                 if hasattr(self, "preview_video_slider") and event.ui_element == self.preview_video_slider:
@@ -1822,29 +1854,40 @@ class App:
             elif event.type == pygame.MOUSEMOTION:
                 if self.panning_active and self.dragging:
                     move_x, move_y = event.rel
-                    
-                    
-                    selected_x, selected_y = self.panning_selected_top_left
-                    selected_w, selected_h = self.panning_selected_width, self.panning_selected_height
-                    
-                    image_w, image_h = self.panning_image.get_width(), self.panning_image.get_height()
-                    
-                    display_w, display_h = self.panning_scaled_width, self.panning_scaled_height
-                    
-                    move_x_ratio, move_y_ratio = selected_w / display_w, selected_h / display_h
-                    
-                    move_x = int(move_x * move_x_ratio)
-                    move_y = int(move_y * move_y_ratio)
-                    
-                    selected_x -= move_x
-                    selected_y -= move_y
-                    selected_x = max(0, min((image_w - selected_w), selected_x))
-                    selected_y = max(0, min((image_h - selected_h), selected_y))
-                    
-                    self.panning_selected_top_left = (selected_x, selected_y)
-                    self.panning_update_image_display()
+                    moved = self.move_panning_selected_topleft(move_x, move_y)
+                    if moved:
+                        self.panning_update_image_display()
+                        self.save_panning()
             
-                    
+            elif event.type == pygame.MOUSEWHEEL:
+                if self.panning_active:
+                    pos = pygame.mouse.get_pos()
+                    rect = self.panning_image_display.get_abs_rect()
+                    if rect.collidepoint(pos):
+                        #Check if zoom in/out action
+                        if event.y != 0 and event.y == event.precise_y:
+                            curr_zoom = self.panning_zoom_level
+                            new_zoom = curr_zoom + event.y
+                            changed = self.change_curr_zoom(new_zoom)
+                            if changed:
+                                self.panning_update_image_display()
+                                self.save_panning()
+                        
+                        # #Check if move in y direction
+                        # elif event.y != 0:
+                        #     changed = self.move_panning_selected_topleft(move_x=0, move_y=event.precise_y*1000)
+                        #     if changed:
+                        #         self.panning_update_image_display()
+                        #         self.save_panning()
+                        
+                        # #Check if move in x direction
+                        # elif event.x != 0:
+                        #     changed = self.move_panning_selected_topleft(move_x=event.precise_x*1000, move_y=0)
+                        #     if changed:
+                        #         self.panning_update_image_display()
+                        #         self.save_panning()
+                        
+                            
                     
                     
                     
