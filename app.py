@@ -4,6 +4,7 @@ import os
 import json
 import threading
 import sys
+import math
 
 import pygame
 pygame.init()
@@ -673,6 +674,18 @@ class App:
         self.panning_update_image_display()
     
     
+    def panning_mouse_move_to_image_move(self, move_x, move_y):
+        selected_w, selected_h = self.panning_selected_width, self.panning_selected_height
+        
+        display_w, display_h = self.panning_scaled_width, self.panning_scaled_height
+        
+        move_x_ratio, move_y_ratio = selected_w / display_w, selected_h / display_h
+        
+        move_x = int(move_x * move_x_ratio)
+        move_y = int(move_y * move_y_ratio)
+        
+        return (move_x, move_y)
+    
     def move_panning_selected_topleft(self, move_x, move_y):
         '''Moves panning_selected_top_left by move_x and move_y amount, returns if the topleft coordinate changed
         
@@ -682,12 +695,6 @@ class App:
         
         image_w, image_h = self.panning_image.get_width(), self.panning_image.get_height()
         
-        display_w, display_h = self.panning_scaled_width, self.panning_scaled_height
-        
-        move_x_ratio, move_y_ratio = selected_w / display_w, selected_h / display_h
-        
-        move_x = int(move_x * move_x_ratio)
-        move_y = int(move_y * move_y_ratio)
         
         selected_x -= move_x
         selected_y -= move_y
@@ -701,8 +708,11 @@ class App:
         return moved
     
     
-    def change_curr_zoom(self, zoom_val:int, update_slider:bool = True):
+    def change_curr_zoom(self, zoom_val:int, update_slider:bool = True, relc_x:float|None = None, relc_y:float|None = None):
         '''Only changes the values and labels related to zoom and handle out of range, returns if zoom value changed. 
+        
+        Also changes panning_selected_topleft if relc_x or relc_y is given to zoom in into a center point \n
+        (relc_x relc_y should be the relative center point withreference to the display panel instead of the image)
         
         Does not update image display and does not save panning information'''
         zoom_val = min(50, zoom_val)
@@ -711,17 +721,45 @@ class App:
             changed = not self.panning_zoom_level == zoom_val
         else:
             changed = True
+            
+        # Change topleft to zoom in at a point
+        if relc_x:
+            old_zoom = self.panning_zoom_level
+            new_zoom = zoom_val
+            
+            old_width = self.calc_zoom_value(old_zoom, self.base_panning_selected_width)
+            new_width = self.calc_zoom_value(new_zoom, self.base_panning_selected_width)
+            move_x = -(old_width - new_width) * relc_x
+        else:
+            move_x = 0
+        
+        if relc_y:
+            old_zoom = self.panning_zoom_level
+            new_zoom = zoom_val
+            
+            old_height = self.calc_zoom_value(old_zoom, self.base_panning_selected_height)
+            new_height = self.calc_zoom_value(new_zoom, self.base_panning_selected_height)
+            move_y = -(old_height - new_height) * relc_y
+        else:
+            move_y = 0
+            
+        
         self.panning_zoom_level = zoom_val
         if update_slider:
             self.zoom_slider.set_current_value(zoom_val)
         
         self.zoom_entry.set_text(str(self.panning_zoom_level))
         
+        if move_x or move_y:
+            self.panning_selected_width, self.panning_selected_height = self.calc_zoom_value(self.panning_zoom_level, self.base_panning_selected_width), self.calc_zoom_value(self.panning_zoom_level, self.base_panning_selected_height)
+            self.move_panning_selected_topleft(move_x, move_y)
+        
         return changed
     
     
     def calc_zoom_value(self, zoom:int, val:int|float):
-        zoom_ratio = 1 - (zoom-1) * self.zoom_ratio_per_level
+        # zoom_ratio = 1 - (zoom-1) * self.zoom_ratio_per_level
+        zoom_ratio = math.exp(-math.log(self.zoom_ratio_per_level) / 49) * math.exp(math.log(self.zoom_ratio_per_level) / 49 * zoom)
         return int(val * zoom_ratio)
     
     
@@ -1719,7 +1757,7 @@ class App:
                 elif hasattr(self, "zoom_entry") and event.ui_element == self.zoom_entry:
                     zoom = self.zoom_entry.get_text()
                     if zoom.isdigit():
-                        changed = self.change_curr_zoom(int(zoom))
+                        changed = self.change_curr_zoom(int(zoom), relc_x=0.5, relc_y=0.5)
                         if changed:
                             self.panning_update_image_display()
                             self.save_panning()
@@ -1741,7 +1779,7 @@ class App:
             #Horizontal slider event
             elif event.type == pygame_gui.UI_HORIZONTAL_SLIDER_MOVED:
                 if hasattr(self, "zoom_slider") and event.ui_element == self.zoom_slider:
-                    changed = self.change_curr_zoom(int(self.zoom_slider.get_current_value()), update_slider=False)
+                    changed = self.change_curr_zoom(int(self.zoom_slider.get_current_value()), update_slider=False, relc_x=0.5, relc_y=0.5)
                     if changed:
                         self.panning_update_image_display()
                         self.save_panning()
@@ -1854,6 +1892,7 @@ class App:
             elif event.type == pygame.MOUSEMOTION:
                 if self.panning_active and self.dragging:
                     move_x, move_y = event.rel
+                    move_x, move_y = self.panning_mouse_move_to_image_move(move_x, move_y)
                     moved = self.move_panning_selected_topleft(move_x, move_y)
                     if moved:
                         self.panning_update_image_display()
@@ -1862,13 +1901,19 @@ class App:
             elif event.type == pygame.MOUSEWHEEL:
                 if self.panning_active:
                     pos = pygame.mouse.get_pos()
+                    mouse_x, mouse_y = pos
                     rect = self.panning_image_display.get_abs_rect()
                     if rect.collidepoint(pos):
                         #Check if zoom in/out action
                         if event.y != 0 and event.y == event.precise_y:
                             curr_zoom = self.panning_zoom_level
                             new_zoom = curr_zoom + event.y
-                            changed = self.change_curr_zoom(new_zoom)
+                            
+                            topleft_x, topleft_y = rect.topleft
+                            display_width, display_height = rect.width, rect.height
+                            relc_x, relc_y = (mouse_x - topleft_x) / display_width, (mouse_y - topleft_y) / display_height
+                            
+                            changed = self.change_curr_zoom(new_zoom, relc_x=relc_x, relc_y=relc_y)
                             if changed:
                                 self.panning_update_image_display()
                                 self.save_panning()
