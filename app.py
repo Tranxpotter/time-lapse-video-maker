@@ -148,7 +148,7 @@ class App:
         
         pygame_gui.elements.UILabel(
             relative_rect=pygame.Rect(0, 0, 1080, 50),
-            text='Choose a file within a folder, the rest of the images in the folder will be automatically included.',
+            text='Select all images to include into the video',
             manager=self.manager,
             container=input_frame, 
             anchors={"left":"left", "top":"top", "top_target":self.scene1_error_msg}, 
@@ -242,8 +242,10 @@ class App:
         #Panning screen
         self.panning = dict() #For storing panning results
         self.panning_active = False #For checking if panning function should be active
+        self.curr_panning_index = 0
         
-        
+        #Preview screen
+        self.curr_preview_index = 0
         
         
         #Initialize first active screen
@@ -534,8 +536,9 @@ class App:
             container=self.scene2_panning_screen, 
             anchors={"right":"right", "top":"top"}, 
             object_id=ObjectID(class_id="@selection_list", object_id="#image_select"), 
-            default_selection=(self.get_image_names()[0], f"#Select_{self.get_image_names()[0]}_btn")
+            default_selection=(self.get_image_names()[self.curr_panning_index], f"#Select_{self.get_image_names()[self.curr_panning_index]}_btn")
         )
+        self.scroll_to_index(self.panning_image_select, self.curr_panning_index)
         
         
         self.panning_image_display_size = self.panning_image_display_width, self.panning_image_display_height = (700, 500)
@@ -629,7 +632,7 @@ class App:
         )
         self.panning_save_msg.hide()
         
-        self.panning_initialize_image_display(self.image_paths[0])
+        self.panning_initialize_image_display(self.image_paths[self.curr_panning_index])
     
     
     
@@ -648,7 +651,6 @@ class App:
         # 0. Get the panning information for the image
         if image_path not in self.panning:
             self.panning_selected_top_left = (0, 0)
-            # print(self.panning_selected_width, self.panning_selected_height)
             self.panning_zoom_level = 1
             self.panning_delete_btn.disable()
         else:
@@ -682,7 +684,6 @@ class App:
         
         # 4. Move selecteed topleft if selected area is out of range
         self.panning_selected_top_left = (min(self.panning_image.get_width() - self.panning_selected_width, self.panning_selected_top_left[0]), min(self.panning_image.get_height() - self.panning_selected_height, self.panning_selected_top_left[1]))
-        # print(self.panning_selected_top_left)
         
         # 4. Crop image according to selected pos and size
         panning_curr_image = panning_curr_image.subsurface(pygame.Rect(self.panning_selected_top_left, (self.panning_selected_width, self.panning_selected_height)))
@@ -710,7 +711,19 @@ class App:
         )
     
     
-    
+    def scroll_to_index(self, selection_list:pygame_gui.elements.UISelectionList, index):
+        total_items = len(selection_list.item_list)
+        if total_items > 1:
+            scroll_pos = (index-15) / (total_items - 1)
+            if scroll_pos > 1:
+                scroll_pos = 1.0
+            if scroll_pos < 0:
+                scroll_pos = 0.0
+            if selection_list.scroll_bar:
+                selection_list.scroll_bar.set_scroll_from_start_percentage(scroll_pos)
+        else:
+            if selection_list.scroll_bar:
+                selection_list.scroll_bar.set_scroll_from_start_percentage(0.0)
     
     
     def initialize_preview_screen(self):
@@ -727,8 +740,9 @@ class App:
             container=self.scene2_preview_screen, 
             anchors={"right":"right", "top":"top"}, 
             object_id=ObjectID(class_id="@selection_list", object_id="#image_select"), 
-            default_selection=(self.get_image_names()[0], f"#Preview_{self.get_image_names()[0]}_btn")
+            default_selection=(self.get_image_names()[self.curr_preview_index], f"#Preview_{self.get_image_names()[self.curr_preview_index]}_btn")
         )
+        self.scroll_to_index(self.preview_image_select, self.curr_preview_index)
         
         
         self.preview_image_display_size = self.preview_image_display_width, self.preview_image_display_height = (700, 500)
@@ -837,7 +851,7 @@ class App:
         
         
         self.preview_display_details = self.panning_to_display_details()
-        self.preview_show_image(self.image_paths[0])
+        self.preview_show_image(self.image_paths[self.curr_preview_index])
         
     
     def get_topleft_from_relc(self, relative_center:tuple[float, float], image_width, image_height, base_width, base_height, crop_width, crop_height):
@@ -888,7 +902,6 @@ class App:
         
         zoom_level = display_details["zoom_level"]
         crop_width, crop_height = self.calc_zoom_value(zoom_level, image_base_width), self.calc_zoom_value(zoom_level, image_base_height)
-        # print(topleft, crop_width, crop_height, image_base_width, image_base_height)
         
         topleft = self.get_topleft_from_relc(relative_center, preview_image.get_width(), preview_image.get_height(), image_base_width, image_base_height, crop_width, crop_height)
         
@@ -1042,7 +1055,6 @@ class App:
         fourcc = cv2.VideoWriter_fourcc(*'mp4v')  # or use 'XVID' for .avi
         video = cv2.VideoWriter(filepath, fourcc, self.fps, self.video_resolution)
         display_details = self.panning_to_display_details()
-        # print(display_details)
         
         if self.anti_flickering == "Off":
         
@@ -1223,10 +1235,10 @@ class App:
                     self.scene1_error_msg.hide()
                     filetypes = [("Image files", " ".join([f"*.{ext}" for ext in VALID_FILE_TYPES]))]
                     # file_path = filedialog.askopenfilename(filetypes=filetypes)
-                    self.file_paths = filedialog.askopenfilenames(filetypes=filetypes)
-                    if self.file_paths:
-                        file_path = self.file_paths[0]
-                        self.file_paths = list(self.file_paths)
+                    file_paths = filedialog.askopenfilenames(filetypes=filetypes)
+                    if file_paths:
+                        file_path = file_paths[0]
+                        self.file_paths = list(file_paths)
                     else:
                         self.file_paths = []
                         file_path = ""
@@ -1456,7 +1468,6 @@ class App:
                                                             #  "center":center, 
                                                              "relative_center":relative_center,
                                                              "zoom_level":self.panning_zoom_level}
-                    # print("center, relative center:", center, relative_center)
                     self.panning_delete_btn.enable()
                     
                     with open(os.path.join(self.application_path, "data/themes/changing_theme.json"), "r") as f:
@@ -1497,6 +1508,7 @@ class App:
                         if self.panning_image_path in self.panning:
                             del self.panning[self.panning_image_path]
                         self.image_paths.remove(self.panning_image_path)
+                        self.curr_panning_index -= 1
                         self.curr_active_screen.kill()
                         self.initialize_panning_screen()
                         self.curr_active_screen = self.scene2_panning_screen
@@ -1717,14 +1729,18 @@ class App:
             elif event.type == pygame_gui.UI_SELECTION_LIST_NEW_SELECTION:
                 if hasattr(self, "panning_image_select") and event.ui_element == self.panning_image_select:
                     image_name = event.text
-                    image_path = os.path.join(self.folder_path, image_name)
+                    image_path = self.folder_path + "/" + image_name
+                    image_index = self.image_paths.index(image_path)
+                    self.curr_panning_index = image_index
                     self.panning_initialize_image_display(image_path)
                     self.dragging = False
             
             
                 elif hasattr(self, "preview_image_select") and event.ui_element == self.preview_image_select:
                     image_name = event.text
-                    image_path = os.path.join(self.folder_path, image_name)
+                    image_path = self.folder_path + "/" + image_name
+                    image_index = self.image_paths.index(image_path)
+                    self.curr_preview_index = image_index
                     self.preview_show_image(image_path)
                     self.preview_playing = False
                     self.preview_play_btn.set_text("Play")
@@ -1795,9 +1811,7 @@ class App:
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 if self.panning_active and event.button == pygame.BUTTON_LEFT:
                     pos = event.pos
-                    # print(pos)
                     rect = self.panning_image_display.get_abs_rect()
-                    # print(rect.topleft, rect.topright, rect.bottomleft, rect.bottomright, rect.width, rect.height)
                     if rect.collidepoint(pos):
                         self.dragging = True
             
@@ -1826,7 +1840,6 @@ class App:
                     selected_y -= move_y
                     selected_x = max(0, min((image_w - selected_w), selected_x))
                     selected_y = max(0, min((image_h - selected_h), selected_y))
-                    # print(selected_x, selected_y)
                     
                     self.panning_selected_top_left = (selected_x, selected_y)
                     self.panning_update_image_display()
