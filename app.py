@@ -48,6 +48,7 @@ class App:
         self.zoom_ratio_per_level = 0.02
         self.exporting = False
         
+        self.curr_scene = 1
         
         #fonts path setup
         with open(os.path.join(self.application_path, "data/themes/paths.json"), "r") as f:
@@ -84,7 +85,7 @@ class App:
     
     def scene1(self):
         self.manager.clear_and_reset()
-        
+        self.curr_scene = 1
         
         title = pygame_gui.elements.UILabel(
             relative_rect=pygame.Rect(0, 0, 1080, 100),
@@ -157,18 +158,20 @@ class App:
     
     def scene2(self):
         #Load all image paths from the same file path
-        self.file_path = self.file_path_entry.get_text()
-        self.image_paths = []
-        self.folder_path = os.path.dirname(self.file_path)
+        # self.file_path = self.file_path_entry.get_text()
+        # self.image_paths = []
+        # self.folder_path = os.path.dirname(self.file_path)
         
         
         
-        for file in sorted(os.listdir(self.folder_path)):
-            ext = file.split(".")[-1]
-            if ext in VALID_FILE_TYPES:
-                self.image_paths.append(os.path.join(self.folder_path, file))
+        # for file in sorted(os.listdir(self.folder_path)):
+        #     ext = file.split(".")[-1]
+        #     if ext in VALID_FILE_TYPES:
+        #         self.image_paths.append(os.path.join(self.folder_path, file))
         
-
+        self.image_paths = self.file_paths
+        self.folder_path = os.path.dirname(self.image_paths[0])
+        self.curr_scene = 2
         
         #Initialize the UI layout for scene2
         self.manager.clear_and_reset()
@@ -182,7 +185,7 @@ class App:
         
         self.scene2_back_btn = pygame_gui.elements.UIButton(
             relative_rect=pygame.Rect(20, 0, 100, 50),
-            text='Back',
+            text='File',
             manager=self.manager, 
             container=self.nav_bar, 
             anchors={"left":"left", "top":"top"}, 
@@ -1206,7 +1209,12 @@ class App:
     def handle_events(self):
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
-                self.running = False
+                if self.curr_scene == 2:
+                    answer = messagebox.askyesno("Warning", "Are you sure you want to quit? All changes will be lost.")
+                    if answer is True:
+                        self.running = False
+                else:
+                    self.running = False
                 
             #Button pressed events
             elif event.type == pygame_gui.UI_BUTTON_PRESSED:
@@ -1214,7 +1222,15 @@ class App:
                 if hasattr(self, "file_choosing_btn") and event.ui_element == self.file_choosing_btn:
                     self.scene1_error_msg.hide()
                     filetypes = [("Image files", " ".join([f"*.{ext}" for ext in VALID_FILE_TYPES]))]
-                    file_path = filedialog.askopenfilename(filetypes=filetypes)
+                    # file_path = filedialog.askopenfilename(filetypes=filetypes)
+                    self.file_paths = filedialog.askopenfilenames(filetypes=filetypes)
+                    if self.file_paths:
+                        file_path = self.file_paths[0]
+                        self.file_paths = list(self.file_paths)
+                    else:
+                        self.file_paths = []
+                        file_path = ""
+                        
                     self.file_path_entry.set_text(file_path)
                 
                 elif hasattr(self, "confirm_btn") and event.ui_element == self.confirm_btn:
@@ -1227,7 +1243,9 @@ class App:
                 
                 #Scene 2 button events
                 elif hasattr(self, "scene2_back_btn") and event.ui_element == self.scene2_back_btn:
-                    self.scene1()
+                    answer = messagebox.askyesno("Warning", "Are you sure you want change selected files? All settings will be reset.")
+                    if answer is True:
+                        self.scene1()
                 
                 elif hasattr(self, "scene2_options_btn") and event.ui_element == self.scene2_options_btn:
                     self.curr_disabled_btn.enable()
