@@ -757,11 +757,13 @@ class App:
         return changed
     
     
-    def calc_zoom_value(self, zoom:int, val:int|float):
-        # zoom_ratio = 1 - (zoom-1) * self.zoom_ratio_per_level
+    def calc_zoom_value(self, zoom:int|float, val:int|float):
         zoom_ratio = math.exp(-math.log(self.zoom_ratio_per_level) / 49) * math.exp(math.log(self.zoom_ratio_per_level) / 49 * zoom)
         return int(val * zoom_ratio)
     
+    def get_zoom_ratio(self, zoom):
+        zoom_ratio = math.exp(-math.log(self.zoom_ratio_per_level) / 49) * math.exp(math.log(self.zoom_ratio_per_level) / 49 * zoom)
+        return zoom_ratio
     
     def panning_update_image_display(self):
         self.panning_save_msg.hide()
@@ -1235,45 +1237,106 @@ class App:
             panning_key_index = 0
             next_panning = panning[next_image_path]
             next_image_index = self.image_paths.index(panning_keys[0])
-            next_rel_center = next_panning["relative_center"]
-            next_zoom_level = next_panning["zoom_level"]
+            final_rel_center = next_panning["relative_center"]
+            final_zoom_level = next_panning["zoom_level"]
             if next_image_index == 0:
-                curr_rel_center = next_rel_center
-                curr_zoom_level = next_zoom_level
+                # No next image change at first image if panning of first image is set
+                start_rel_center = final_rel_center
+                start_zoom_level = final_zoom_level
+                curr_zoom_ratio = start_zoom_ratio = self.get_zoom_ratio(start_zoom_level)
+                final_zoom_ratio = self.get_zoom_ratio(final_zoom_level)
+                rel_center_x_total_change = 0
+                rel_center_y_total_change = 0
+                total_zoom_level_change = 0
+                zoom_level_change = 0
+                
                 rel_center_x_change = 0
                 rel_center_y_change = 0
-                zoom_level_change = 0
+                curr_rel_center_x_change = 0
+                curr_rel_center_y_change = 0
             else:
-                curr_zoom_level = 1
-                curr_rel_center = (0.5, 0.5)
-                rel_center_x_change = (next_rel_center[0] - curr_rel_center[0]) / next_image_index
-                rel_center_y_change = (next_rel_center[1] - curr_rel_center[1]) / next_image_index
-                zoom_level_change = (next_zoom_level - curr_zoom_level) / next_image_index
+                # Calculate changes from first image to next panning if panning of first image is not set
+                # v initial conditions of first image
+                start_zoom_level = 1
+                start_rel_center = (0.5, 0.5)
+                # v panning changes
+                rel_center_x_total_change = final_rel_center[0] - start_rel_center[0]
+                rel_center_y_total_change = final_rel_center[1] - start_rel_center[1]
+                
+                
+                total_zoom_level_change = final_zoom_level - start_zoom_level
+                
+                curr_zoom_ratio = start_zoom_ratio = self.get_zoom_ratio(start_zoom_level)
+                final_zoom_ratio = self.get_zoom_ratio(final_zoom_level)
+                
+                if total_zoom_level_change != 0:
+                    zoom_level_change = total_zoom_level_change / next_image_index
+                    
+                    # v (curr zoom ratio - start zoom ratio)/(final zoom ratio - start zoom ratio) = curr rel center x change / total rel center x change
+                    # zoom ratio(zoom level change * counter)
+                    zoom_ratio = (curr_zoom_ratio - start_zoom_ratio)/(final_zoom_ratio - start_zoom_ratio)
+                    
+                    curr_rel_center_x_change = zoom_ratio * rel_center_x_total_change
+                    curr_rel_center_y_change = zoom_ratio * rel_center_y_total_change
+                else:
+                    rel_center_x_change = rel_center_x_total_change / next_image_index
+                    rel_center_y_change = rel_center_y_total_change / next_image_index
+                    curr_rel_center_x_change = 0
+                    curr_rel_center_y_change = 0
+                
             counter = 0
             curr_image_index = 0
 
             
             for image_path in self.image_paths:
-                display_details[image_path] = {"relative_center":(curr_rel_center[0] + rel_center_x_change*counter, curr_rel_center[1] + rel_center_y_change*counter), 
-                                            "zoom_level":(curr_zoom_level + zoom_level_change*counter)}
+                curr_zoom_level = start_zoom_level + zoom_level_change*counter
+                display_details[image_path] = {"relative_center":(start_rel_center[0] + curr_rel_center_x_change, start_rel_center[1] + curr_rel_center_y_change), 
+                                            "zoom_level":curr_zoom_level}
+                
+                
+                
                 
                 if image_path == next_image_path and panning_key_index + 1 < len(panning):
                     counter = 0
-                    curr_rel_center = next_rel_center
-                    curr_zoom_level = next_zoom_level
+                    start_rel_center = final_rel_center
+                    start_zoom_level = final_zoom_level
                     curr_image_index = next_image_index
                     panning_key_index += 1
                     next_image_path = panning_keys[panning_key_index]
                     next_panning = panning[next_image_path]
                     next_image_index = self.image_paths.index(next_image_path)
-                    next_rel_center = next_panning["relative_center"]
-                    next_zoom_level = next_panning["zoom_level"]
-                    rel_center_x_change = (next_rel_center[0] - curr_rel_center[0]) / (next_image_index - curr_image_index)
-                    rel_center_y_change = (next_rel_center[1] - curr_rel_center[1]) / (next_image_index - curr_image_index)
-                    zoom_level_change = (next_zoom_level - curr_zoom_level) / (next_image_index - curr_image_index)
+                    final_rel_center = next_panning["relative_center"]
+                    final_zoom_level = next_panning["zoom_level"]
+                    
+                    rel_center_x_total_change = final_rel_center[0] - start_rel_center[0]
+                    rel_center_y_total_change = final_rel_center[1] - start_rel_center[1]
+                    
+                    zoom_level_change = (final_zoom_level - start_zoom_level) / (next_image_index - curr_image_index)
+                    total_zoom_level_change = final_zoom_level - start_zoom_level
+                    zoom_level_change = total_zoom_level_change / (next_image_index - curr_image_index)
+                    
+                    curr_zoom_ratio = start_zoom_ratio = self.get_zoom_ratio(start_zoom_level)
+                    final_zoom_ratio = self.get_zoom_ratio(final_zoom_level)
+                    
+                    rel_center_x_change = rel_center_x_total_change / next_image_index
+                    rel_center_y_change = rel_center_y_total_change / next_image_index
                 
                 else:
                     counter += 1
+                
+                
+                # Calc center change from zoom ratio changes
+                curr_zoom_ratio = self.get_zoom_ratio(curr_zoom_level)
+                if total_zoom_level_change != 0:
+                    zoom_ratio = (curr_zoom_ratio - start_zoom_ratio)/(final_zoom_ratio - start_zoom_ratio)
+                    
+                    curr_rel_center_x_change = zoom_ratio * rel_center_x_total_change
+                    curr_rel_center_y_change = zoom_ratio * rel_center_y_total_change
+                else:
+                    curr_rel_center_x_change = rel_center_x_change * counter
+                    curr_rel_center_y_change = rel_center_y_change * counter
+                
+                
         else:
             for image_path in self.image_paths:
                 display_details[image_path] = {"top_left":(0, 0), "relative_center":(0.5, 0.5), "zoom_level":1}
