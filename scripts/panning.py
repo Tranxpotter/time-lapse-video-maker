@@ -161,9 +161,10 @@ class PanningScreen(pygame_gui.elements.UIPanel):
         center = (self.panning_selected_top_left[0] + self.panning_selected_width//2, self.panning_selected_top_left[1] + self.panning_selected_height//2)
         relative_center = (center[0] / self.base_panning_selected_width, center[1] / self.base_panning_selected_height)
         is_update = self.panning_image_path in self.panning
-        self.panning[self.panning_image_path] = {"top_left":self.panning_selected_top_left, 
+        self.panning[self.panning_image_path] = {
+                                                    # "top_left":self.panning_selected_top_left, 
                                                 #  "center":center, 
-                                                    "relative_center":relative_center,
+                                                    "relative_center":self.panning_selected_relc,
                                                     "zoom_level":self.panning_zoom_level}
         self.panning_delete_btn.enable()
         
@@ -176,7 +177,17 @@ class PanningScreen(pygame_gui.elements.UIPanel):
         
         self.panning_save_msg.show()
     
+    @property
+    def panning_selected_top_left(self):
+        crop_width = self.scene2.calc_zoom_value(self.panning_zoom_level, self.base_panning_selected_width)
+        crop_height = self.scene2.calc_zoom_value(self.panning_zoom_level, self.base_panning_selected_height)
+        return self.scene2.get_topleft_from_relc(self.panning_selected_relc, self.panning_image.get_width(), self.panning_image.get_height(), crop_width, crop_height)
     
+    @panning_selected_top_left.setter
+    def panning_selected_top_left(self, val:tuple[int, int]):
+        crop_width = self.scene2.calc_zoom_value(self.panning_zoom_level, self.base_panning_selected_width)
+        crop_height = self.scene2.calc_zoom_value(self.panning_zoom_level, self.base_panning_selected_height)
+        self.panning_selected_relc = self.scene2.get_relc_from_topleft(val, self.panning_image.get_width(), self.panning_image.get_height(), crop_width, crop_height)
     
     def panning_initialize_image_display(self, image_path):
         # Load image
@@ -201,11 +212,13 @@ class PanningScreen(pygame_gui.elements.UIPanel):
 
         # 0. Get the panning information for the image
         if image_path not in self.panning:
-            self.panning_selected_top_left = (0, 0)
+            self.panning_selected_relc = (0.5, 0.5)
+            # self.panning_selected_top_left = (0, 0)
             self.change_curr_zoom(1)
             self.panning_delete_btn.disable()
         else:
-            self.panning_selected_top_left = self.panning[image_path]["top_left"]
+            self.panning_selected_relc = self.panning[image_path]["relative_center"]
+            # self.panning_selected_top_left = self.panning[image_path]["top_left"]
             self.change_curr_zoom(self.panning[image_path]["zoom_level"])
             self.panning_delete_btn.enable()
         
@@ -362,7 +375,8 @@ class PanningScreen(pygame_gui.elements.UIPanel):
                         json.dump(theme, f, indent=2)
                     
                     #Reset panning
-                    self.panning_selected_top_left = (0, 0)
+                    # self.panning_selected_top_left = (0, 0)
+                    self.panning_selected_relc = (0.5, 0.5)
                     self.panning_zoom_level = 1
                     self.zoom_entry.set_text(str(self.panning_zoom_level))
                     self.zoom_slider.set_current_value(self.panning_zoom_level)
