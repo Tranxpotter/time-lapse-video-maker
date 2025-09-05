@@ -79,7 +79,8 @@
     }, 
     "#scene1_instructions":{
         "font":{
-            "size":"20"
+            "size":"20", 
+            "name":"Helvetica"
         }
     }
 }

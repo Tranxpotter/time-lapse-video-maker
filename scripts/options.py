@@ -10,7 +10,7 @@ from .scene import Scene
 
 
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Literal
 if TYPE_CHECKING:
     from ..app import App
     from .scene2 import Scene2
@@ -98,6 +98,23 @@ class OptionsScreen(pygame_gui.elements.UIPanel):
         )
         self.aspect_ratio_presets = {"16:9":16/9, "1:1":1, "9:16":9/16, "4:3":4/3, "4:5":4/5, "21:9":21/9, "3:2":3/2}
         
+        self.image_fitting_rule_label = pygame_gui.elements.UILabel(
+            relative_rect=pygame.Rect(0, 0, 200, 50), 
+            text="Image fitting rule:", 
+            manager=self.manager, 
+            container=self, 
+            anchors={"left":"left", "top":"top", "top_target":resolution_label, "left_target":self.resolution_aspect_ratio_menu}, 
+            object_id=ObjectID(class_id="@label", object_id="#image_fitting_rule_label")
+        )
+
+        self.image_fitting_rule_menu = pygame_gui.elements.UIDropDownMenu(
+            relative_rect=pygame.Rect(0, 0, 100, 50), 
+            starting_option="Fit" if not hasattr(self, "image_fitting_rule") else self.image_fitting_rule, 
+            options_list=["Fit", "Fill"],
+            manager=self.manager, 
+            container=self, 
+            anchors={"left":"left", "top":"top", "top_target":resolution_label, "left_target":self.image_fitting_rule_label}, 
+        )
         
         self.resolution_preset_label = pygame_gui.elements.UILabel(
             relative_rect=pygame.Rect(0, 0, 200, 50), 
@@ -321,6 +338,14 @@ class OptionsScreen(pygame_gui.elements.UIPanel):
     def aspect_ratio(self, val:str):
         self.scene2.aspect_ratio = val
     
+    @property
+    def image_fitting_rule(self):
+        return self.scene2.image_fitting_rule
+    
+    @image_fitting_rule.setter
+    def image_fitting_rule(self, val:Literal["Fit", "Fill"]):
+        self.scene2.image_fitting_rule = val
+
     @property
     def video_resolution(self):
         return self.scene2.video_resolution
@@ -641,6 +666,11 @@ class OptionsScreen(pygame_gui.elements.UIPanel):
                         self.resolution_error_msg.show()
                     else:
                         self.resolution_error_msg.hide()
+            
+            if event.ui_element == self.image_fitting_rule_menu:
+                selected = self.image_fitting_rule_menu.selected_option[0]
+                if selected == "Fit" or selected == "Fill":
+                    self.image_fitting_rule = selected
 
             
             elif event.ui_element == self.anti_flickering_selector:

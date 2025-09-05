@@ -167,6 +167,10 @@ class PreviewScreen(pygame_gui.elements.UIPanel):
     def video_resolution(self):
         return self.scene2.video_resolution
     
+    @property
+    def image_fitting_rule(self):
+        return self.scene2.image_fitting_rule
+    
     def preview_show_image(self, image_path):
         with open(os.path.join(self.app.application_path, "data/themes/changing_theme.json"), "r") as f:
             theme = json.load(f)
@@ -186,10 +190,18 @@ class PreviewScreen(pygame_gui.elements.UIPanel):
         preview_image = self.scene2.load_image(image_path)
         width_ratio = self.video_resolution[0] / preview_image.get_width()
         height_ratio = self.video_resolution[1] / preview_image.get_height()
-        scaling_ratio = max(width_ratio, height_ratio) #Set min for fit, max for fill
-        image_base_width = int(self.video_resolution[0] / scaling_ratio)
-        image_base_height = int(self.video_resolution[1] / scaling_ratio)
+        if self.image_fitting_rule == "Fit":
+            scaling_ratio = min(width_ratio, height_ratio)
+        else:
+            scaling_ratio = max(width_ratio, height_ratio)
+        image_base_width = round(self.video_resolution[0] / scaling_ratio)
+        image_base_height = round(self.video_resolution[1] / scaling_ratio)
         
+        if image_base_height > preview_image.get_height() or image_base_width > preview_image.get_width():
+            background = pygame.Surface((image_base_width, image_base_height))
+            background.blit(preview_image, (round((image_base_width-preview_image.get_width())/2), round((image_base_height-preview_image.get_height())/2)))
+            preview_image = background
+
         display_details = self.preview_display_details[image_path]
         # topleft = display_details["top_left"]
         relative_center = display_details["relative_center"]

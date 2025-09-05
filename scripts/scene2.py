@@ -98,6 +98,7 @@ class Scene2(Scene):
         self.first_img_width, self.first_img_height = first_image.get_width(), first_image.get_height()
         self.video_resolution = (int(self.first_img_width), int(self.first_img_height))
         self.aspect_ratio = "Custom"
+        self.image_fitting_rule:Literal["Fit", "Fill"] = "Fit"
         self.anti_flickering = "Off"
         self.anti_flickering_sample_size = "7"
         
@@ -260,11 +261,14 @@ class Scene2(Scene):
                     
                     curr_rel_center_x_change = zoom_ratio * rel_center_x_total_change
                     curr_rel_center_y_change = zoom_ratio * rel_center_y_total_change
+                    rel_center_x_change = rel_center_x_total_change / next_image_index
+                    rel_center_y_change = rel_center_y_total_change / next_image_index
                 else:
                     rel_center_x_change = rel_center_x_total_change / next_image_index
                     rel_center_y_change = rel_center_y_total_change / next_image_index
                     curr_rel_center_x_change = 0
                     curr_rel_center_y_change = 0
+                    zoom_level_change = 0
                 
             counter = 0
             curr_image_index = 0
@@ -272,16 +276,27 @@ class Scene2(Scene):
             
             for image_path in self.image_paths:
                 curr_zoom_level = start_zoom_level + zoom_level_change*counter
+
+                # Calc center change from zoom ratio changes
+                curr_zoom_ratio = self.get_zoom_ratio(curr_zoom_level)
+                if total_zoom_level_change != 0:
+                    
+                    zoom_ratio = (curr_zoom_ratio - start_zoom_ratio)/(final_zoom_ratio - start_zoom_ratio)
+                    
+                    curr_rel_center_x_change = zoom_ratio * rel_center_x_total_change
+                    curr_rel_center_y_change = zoom_ratio * rel_center_y_total_change
+                else:
+                    curr_rel_center_x_change = rel_center_x_change * counter
+                    curr_rel_center_y_change = rel_center_y_change * counter
+
                 display_details[image_path] = {"relative_center":(start_rel_center[0] + curr_rel_center_x_change, start_rel_center[1] + curr_rel_center_y_change), 
                                             "zoom_level":curr_zoom_level}
-                
-                
                 
                 
                 if image_path == next_image_path and panning_key_index + 1 < len(panning):
                     counter = 0
                     start_rel_center = final_rel_center
-                    start_zoom_level = final_zoom_level
+                    start_zoom_level = curr_zoom_level = final_zoom_level
                     curr_image_index = next_image_index
                     panning_key_index += 1
                     next_image_path = panning_keys[panning_key_index]
@@ -303,20 +318,11 @@ class Scene2(Scene):
                     rel_center_x_change = rel_center_x_total_change / next_image_index
                     rel_center_y_change = rel_center_y_total_change / next_image_index
                 
-                else:
-                    counter += 1
+                
+                counter += 1
                 
                 
-                # Calc center change from zoom ratio changes
-                curr_zoom_ratio = self.get_zoom_ratio(curr_zoom_level)
-                if total_zoom_level_change != 0:
-                    zoom_ratio = (curr_zoom_ratio - start_zoom_ratio)/(final_zoom_ratio - start_zoom_ratio)
-                    
-                    curr_rel_center_x_change = zoom_ratio * rel_center_x_total_change
-                    curr_rel_center_y_change = zoom_ratio * rel_center_y_total_change
-                else:
-                    curr_rel_center_x_change = rel_center_x_change * counter
-                    curr_rel_center_y_change = rel_center_y_change * counter
+                
                 
                 
         else:

@@ -8,6 +8,7 @@ import os
 import json
 import threading
 import cv2
+import numpy as np
 
 from .scene import Scene
 from .utils import scroll_to_index
@@ -115,7 +116,9 @@ class ExportScreen(pygame_gui.elements.UIPanel):
             )
             self.export_button.disable()
     
-    
+    @property
+    def image_fitting_rule(self):
+        return self.scene2.image_fitting_rule
     
     @property
     def video_resolution(self):
@@ -156,14 +159,34 @@ class ExportScreen(pygame_gui.elements.UIPanel):
 
         width_ratio = self.video_resolution[0] / image_width
         height_ratio = self.video_resolution[1] / image_height
-        scaling_ratio = max(width_ratio, height_ratio)
-        image_base_width = int(self.video_resolution[0] / scaling_ratio)
-        image_base_height = int(self.video_resolution[1] / scaling_ratio)
+        if self.image_fitting_rule == "Fit":
+            scaling_ratio = min(width_ratio, height_ratio)
+        else:
+            scaling_ratio = max(width_ratio, height_ratio)
+        image_base_width = round(self.video_resolution[0] / scaling_ratio)
+        image_base_height = round(self.video_resolution[1] / scaling_ratio)
+
+        if image_base_width > image_width or image_base_height > image_height:
+            # Create a black background
+            background = np.zeros((image_base_height, image_base_width, 3), dtype=np.uint8)
+
+            # Choose top-left corner for placement
+            x_offset, y_offset = round((image_base_width - image_width) / 2), round((image_base_height - image_height) / 2)
+            # Overlay the image onto the background
+            background[y_offset:y_offset+image_height, x_offset:x_offset+image_width] = image
+            image = background
+            image_width = image_base_width
+            image_height = image_base_height
+            
+
+
+
+
+
         
         crop_width, crop_height = self.scene2.calc_zoom_value(zoom_level, image_base_width), self.scene2.calc_zoom_value(zoom_level, image_base_height)
         
         topleft = self.scene2.get_topleft_from_relc(relative_center, image_width, image_height, image_base_width, image_base_height, crop_width, crop_height)
-        
         cropped_image = image[topleft[1]:topleft[1]+crop_height, topleft[0]:topleft[0]+crop_width]
         resized_image = cv2.resize(cropped_image, self.video_resolution)
         return resized_image

@@ -152,7 +152,9 @@ class PanningScreen(pygame_gui.elements.UIPanel):
     def video_resolution(self):
         return self.scene2.video_resolution
     
-    
+    @property
+    def image_fitting_rule(self):
+        return self.scene2.image_fitting_rule
     
     
     def save_panning(self):
@@ -180,13 +182,23 @@ class PanningScreen(pygame_gui.elements.UIPanel):
         # Load image
         self.panning_image_path = image_path
         self.panning_image = self.scene2.load_image(image_path)
+        image_width, image_height = self.panning_image.get_width(), self.panning_image.get_height()
         
         width_ratio = self.video_resolution[0] / self.panning_image.get_width()
         height_ratio = self.video_resolution[1] / self.panning_image.get_height()
-        scaling_ratio = max(width_ratio, height_ratio)
-        self.base_panning_selected_width = int(self.video_resolution[0] / scaling_ratio)
-        self.base_panning_selected_height = int(self.video_resolution[1] / scaling_ratio)
+        if self.image_fitting_rule == "Fit":
+            scaling_ratio = min(width_ratio, height_ratio)
+        else:
+            scaling_ratio = max(width_ratio, height_ratio)
+        self.base_panning_selected_width = round(self.video_resolution[0] / scaling_ratio)
+        self.base_panning_selected_height = round(self.video_resolution[1] / scaling_ratio)
         
+        # Fill in the background for "fit" image fitting rule
+        if self.base_panning_selected_width > image_width or self.base_panning_selected_height > image_height:
+            background = pygame.Surface((self.base_panning_selected_width, self.base_panning_selected_height))
+            background.blit(self.panning_image, (round((self.base_panning_selected_width-image_width)/2), round((self.base_panning_selected_height-image_height)/2)))
+            self.panning_image = background
+
         # 0. Get the panning information for the image
         if image_path not in self.panning:
             self.panning_selected_top_left = (0, 0)
