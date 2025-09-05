@@ -186,7 +186,7 @@ class PreviewScreen(pygame_gui.elements.UIPanel):
         preview_image = self.scene2.load_image(image_path)
         width_ratio = self.video_resolution[0] / preview_image.get_width()
         height_ratio = self.video_resolution[1] / preview_image.get_height()
-        scaling_ratio = max(width_ratio, height_ratio)
+        scaling_ratio = max(width_ratio, height_ratio) #Set min for fit, max for fill
         image_base_width = int(self.video_resolution[0] / scaling_ratio)
         image_base_height = int(self.video_resolution[1] / scaling_ratio)
         
