@@ -30,13 +30,21 @@ class ExportScreen(pygame_gui.elements.UIPanel):
                          manager=self.manager, 
                          anchors={"left":"left", "right":"right", "top":"top", "top_target":anchor_target})
         
+        self.export_video_image_fitting_label = pygame_gui.elements.UILabel(
+            relative_rect=pygame.Rect(30, 0, 1050, 50), 
+            text=f"Image Fitting Rule: {self.image_fitting_rule}", 
+            manager = self.manager, 
+            container = self, 
+            anchors = {"left":"left", "top":"top"}, 
+            object_id=ObjectID(class_id="@export_info_label", object_id="#export_video_resolution_label")
+        )
     
         self.export_video_resolution_label = pygame_gui.elements.UILabel(
             relative_rect=pygame.Rect(30, 0, 1050, 50), 
             text=f"Video Resolution: {self.video_resolution[0]}x{self.video_resolution[1]}", 
             manager = self.manager, 
             container = self, 
-            anchors = {"left":"left", "top":"top"}, 
+            anchors = {"left":"left", "top":"top", "top_target":self.export_video_image_fitting_label}, 
             object_id=ObjectID(class_id="@export_info_label", object_id="#export_video_resolution_label")
         )
         
