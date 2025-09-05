@@ -182,15 +182,19 @@ class Scene2(Scene):
         return [os.path.basename(image_path) for image_path in self.image_paths]
     
     
-    def get_topleft_from_relc(self, relative_center:tuple[float, float], image_width, image_height, base_width, base_height, crop_width, crop_height):
+    def get_topleft_from_relc(self, relative_center:tuple[float, float], image_width, image_height, crop_width, crop_height):
         # Get topleft from relative_center
-        center_x = relative_center[0] * base_width
-        center_y = relative_center[1] * base_height
+        center_x = relative_center[0] * image_width
+        center_y = relative_center[1] * image_height
         topleft_x = int(center_x - crop_width // 2)
         topleft_y = int(center_y - crop_height // 2)
         
         
         # Move the minimum to fit image if area is out of range
+        if topleft_x < 0:
+            topleft_x = 0
+        if topleft_y < 0:
+            topleft_y = 0
         if topleft_x + crop_width >= image_width:
             topleft_x = image_width - crop_width
         if topleft_y + crop_height >= image_height:
@@ -199,7 +203,14 @@ class Scene2(Scene):
         topleft = (topleft_x, topleft_y)
         return topleft
     
-    
+    def get_relc_from_topleft(self, topleft:tuple[int, int], image_width, image_height, crop_width, crop_height):
+        # Calculate the center from the topleft and crop size
+        center_x = topleft[0] + crop_width // 2
+        center_y = topleft[1] + crop_height // 2
+        # Normalize to image dimensions
+        relative_center = (center_x / image_width, center_y / image_height)
+        return relative_center
+        
     
     def panning_to_display_details(self):
         '''Return display details of each image from panning details

@@ -186,7 +186,7 @@ class ExportScreen(pygame_gui.elements.UIPanel):
         
         crop_width, crop_height = self.scene2.calc_zoom_value(zoom_level, image_base_width), self.scene2.calc_zoom_value(zoom_level, image_base_height)
         
-        topleft = self.scene2.get_topleft_from_relc(relative_center, image_width, image_height, image_base_width, image_base_height, crop_width, crop_height)
+        topleft = self.scene2.get_topleft_from_relc(relative_center, image_width, image_height, crop_width, crop_height)
         cropped_image = image[topleft[1]:topleft[1]+crop_height, topleft[0]:topleft[0]+crop_width]
         resized_image = cv2.resize(cropped_image, self.video_resolution)
         return resized_image

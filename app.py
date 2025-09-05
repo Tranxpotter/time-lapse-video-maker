@@ -61,8 +61,14 @@ class App:
         for k in paths:
             paths[k] = self.application_path + "/" + paths[k]
         
-        with open(os.path.join(self.application_path, "data/themes/fonts.json"), "r") as f:
-            data = json.load(f)
+        data = {
+            "label": {
+                "font": {
+                "name": "Helvetica",
+                "size": "30"
+                }
+            }
+        }
         
         data["label"]["font"] |= paths
         with open(os.path.join(self.application_path, "data/themes/fonts.json"), "w") as f:

@@ -210,7 +210,7 @@ class PreviewScreen(pygame_gui.elements.UIPanel):
         zoom_level = display_details["zoom_level"]
         crop_width, crop_height = self.scene2.calc_zoom_value(zoom_level, image_base_width), self.scene2.calc_zoom_value(zoom_level, image_base_height)
         
-        topleft = self.scene2.get_topleft_from_relc(relative_center, preview_image.get_width(), preview_image.get_height(), image_base_width, image_base_height, crop_width, crop_height)
+        topleft = self.scene2.get_topleft_from_relc(relative_center, preview_image.get_width(), preview_image.get_height(), crop_width, crop_height)
         
         preview_image = preview_image.subsurface(pygame.Rect((topleft), (crop_width, crop_height)))
         preview_image = pygame.transform.scale(preview_image, self.video_resolution)
