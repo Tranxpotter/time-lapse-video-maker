@@ -103,7 +103,7 @@ class PanningScreen(pygame_gui.elements.UIPanel):
         
         
         self.panning_exclude_image_btn = pygame_gui.elements.UIButton(
-            relative_rect=pygame.Rect(0, 20, 200, 50),
+            relative_rect=pygame.Rect(0, 20, 150, 50),
             text='Exclude Image',
             manager=self.manager, 
             container=self, 
@@ -116,15 +116,37 @@ class PanningScreen(pygame_gui.elements.UIPanel):
             raise Exception("Hey there's no image paths in the list, what's going on??")
         
         
-        self.panning_save_msg = pygame_gui.elements.UILabel(
-            relative_rect=pygame.Rect(0, 0, 100, 50),
+        self.panning_copy_btn = pygame_gui.elements.UIButton(
+            relative_rect=pygame.Rect(150, 20, 100, 50),
+            text='Copy',
+            manager=self.manager, 
+            container=self, 
+            anchors={"left":"left", "top":"top", "left_target":self.panning_exclude_image_btn, "top_target":self.zoom_slider}, 
+            object_id=ObjectID(class_id="@button", object_id="#panning_copy_btn")
+        )
+        
+        self.panning_paste_btn = pygame_gui.elements.UIButton(
+            relative_rect=pygame.Rect(0, 20, 100, 50),
+            text='Paste',
+            manager=self.manager, 
+            container=self, 
+            anchors={"left":"left", "top":"top", "left_target":self.panning_copy_btn, "top_target":self.zoom_slider}, 
+            object_id=ObjectID(class_id="@button", object_id="#panning_paste_btn")
+        )
+        if not self.copied_panning:
+            self.panning_paste_btn.disable()
+        
+        
+        self.panning_msg = pygame_gui.elements.UILabel(
+            relative_rect=pygame.Rect(20, 0, 400, 40),
             text='Saved', 
             manager=self.manager, 
             container=self, 
             anchors={"left":"left", "top":"top", "top_target":self.panning_exclude_image_btn},
-            object_id=ObjectID(class_id="@label", object_id="#panning_zoom_label")
+            object_id=ObjectID(class_id="@label", object_id="#panning_msg")
         )
-        self.panning_save_msg.hide()
+        self.panning_msg.hide()
+        
         
         self.panning_initialize_image_display(self.image_paths[self.curr_panning_index])
     
@@ -156,17 +178,22 @@ class PanningScreen(pygame_gui.elements.UIPanel):
     def image_fitting_rule(self):
         return self.scene2.image_fitting_rule
     
+    @property
+    def copied_panning(self):
+        return self.scene2.copied_panning
+    
+    @copied_panning.setter
+    def copied_panning(self, val:dict):
+        self.scene2.copied_panning = val
     
     def save_panning(self):
-        center = (self.panning_selected_top_left[0] + self.panning_selected_width//2, self.panning_selected_top_left[1] + self.panning_selected_height//2)
-        relative_center = (center[0] / self.base_panning_selected_width, center[1] / self.base_panning_selected_height)
         is_update = self.panning_image_path in self.panning
         self.panning[self.panning_image_path] = {
-                                                    # "top_left":self.panning_selected_top_left, 
-                                                #  "center":center, 
                                                     "relative_center":self.panning_selected_relc,
-                                                    "zoom_level":self.panning_zoom_level}
+                                                    "zoom_level":self.panning_zoom_level
+                                                }
         self.panning_delete_btn.enable()
+        self.panning_copy_btn.enable()
         
         if not is_update:
             with open(os.path.join(self.app.application_path, "data/themes/changing_theme.json"), "r") as f:
@@ -175,7 +202,8 @@ class PanningScreen(pygame_gui.elements.UIPanel):
             with open(os.path.join(self.app.application_path, "data/themes/changing_theme.json"), "w") as f:
                 json.dump(theme, f, indent=2)
         
-        self.panning_save_msg.show()
+        self.panning_msg.set_text("Saved")
+        self.panning_msg.show()
     
     @property
     def panning_selected_top_left(self):
@@ -216,11 +244,13 @@ class PanningScreen(pygame_gui.elements.UIPanel):
             # self.panning_selected_top_left = (0, 0)
             self.change_curr_zoom(1)
             self.panning_delete_btn.disable()
+            self.panning_copy_btn.disable()
         else:
             self.panning_selected_relc = self.panning[image_path]["relative_center"]
             # self.panning_selected_top_left = self.panning[image_path]["top_left"]
             self.change_curr_zoom(self.panning[image_path]["zoom_level"])
             self.panning_delete_btn.enable()
+            self.panning_copy_btn.enable()
         
         
         
@@ -313,7 +343,7 @@ class PanningScreen(pygame_gui.elements.UIPanel):
     
     
     def panning_update_image_display(self):
-        self.panning_save_msg.hide()
+        self.panning_msg.hide()
         #Reset the panning image display
         if hasattr(self, "panning_image_display"):
             self.panning_image_display.kill()
@@ -381,7 +411,7 @@ class PanningScreen(pygame_gui.elements.UIPanel):
                     self.zoom_entry.set_text(str(self.panning_zoom_level))
                     self.zoom_slider.set_current_value(self.panning_zoom_level)
                     
-                    self.panning_save_msg.hide()
+                    self.panning_msg.hide()
                     self.panning_update_image_display()
                     
                 
@@ -394,6 +424,30 @@ class PanningScreen(pygame_gui.elements.UIPanel):
                     self.image_paths.remove(self.panning_image_path)
                     self.curr_panning_index -= 1
                     self.scene2.to_page("Panning")
+            
+            
+            elif event.ui_element == self.panning_copy_btn:
+                self.copied_panning = {"relative_center":self.panning_selected_relc, "zoom_level":self.panning_zoom_level}
+                self.panning_paste_btn.enable()
+                self.panning_msg.set_text("Copied Panning Settings")
+                self.panning_msg.show()
+            
+            
+            elif event.ui_element == self.panning_paste_btn:
+                if self.copied_panning is not None:
+                    if self.panning_image_path in self.panning:
+                        answer = messagebox.askyesno("Paste Panning Settings", "Are you sure you want to overwrite the current panning settings for this image?")
+                        if answer is False:
+                            return
+                    
+                    self.panning_selected_relc = self.copied_panning["relative_center"]
+                    self.panning_zoom_level = self.copied_panning["zoom_level"]
+                    self.panning_update_image_display()
+                    self.save_panning()
+                    self.panning_msg.set_text("Pasted Panning Settings")
+                    self.panning_msg.show()
+                else:
+                    self.panning_paste_btn.disable()
         
         
         

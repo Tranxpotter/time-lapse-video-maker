@@ -105,6 +105,7 @@ class Scene2(Scene):
         #Panning screen
         self.panning = dict() #For storing panning results
         self.curr_panning_index = 0
+        self.copied_panning:dict|None = None
         
         #Preview screen
         self.curr_preview_index = 0

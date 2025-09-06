@@ -82,5 +82,10 @@
             "size":"20", 
             "name":"Helvetica"
         }
+    }, 
+    "#panning_msg":{
+        "misc":{
+            "text_horiz_alignment":"left"
+        }
     }
 }
