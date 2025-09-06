@@ -29,6 +29,7 @@ class PanningScreen(pygame_gui.elements.UIPanel):
     
 
         self.dragging = False
+        self.reinit_on_update = False
         
         
         self.panning_image_select = pygame_gui.elements.UISelectionList(
@@ -148,6 +149,15 @@ class PanningScreen(pygame_gui.elements.UIPanel):
         self.panning_msg.hide()
         
         
+        self.panning_image_name_label = pygame_gui.elements.UILabel(
+            relative_rect=pygame.Rect(-400, 0, 400, 40),
+            text='', 
+            manager=self.manager, 
+            container=self, 
+            anchors={"right":"right", "top":"top", "top_target":self.panning_exclude_image_btn, "right_target":self.panning_image_select},
+            object_id=ObjectID(class_id="@label", object_id="#panning_image_name_label")
+        )
+        
         self.panning_initialize_image_display(self.image_paths[self.curr_panning_index])
     
     
@@ -198,7 +208,7 @@ class PanningScreen(pygame_gui.elements.UIPanel):
         if not is_update:
             with open(os.path.join(self.app.application_path, "data/themes/changing_theme.json"), "r") as f:
                 theme = json.load(f)
-            theme[f"#Select_{os.path.basename(self.panning_image_path)}_btn"] = {"colours" : {"normal_bg":"rgb(255, 0, 0)"}}
+            theme[f"#Select_{os.path.basename(self.panning_image_path)}_btn"] = {"colours" : {"normal_bg":"rgb(255, 0, 0)", "hovered_bg":"rgb(99, 104, 107)", "selected_bg":"rgb(255, 0, 0)", "active_bg":"rgb(255, 0, 0)"}}
             with open(os.path.join(self.app.application_path, "data/themes/changing_theme.json"), "w") as f:
                 json.dump(theme, f, indent=2)
         
@@ -218,6 +228,24 @@ class PanningScreen(pygame_gui.elements.UIPanel):
         self.panning_selected_relc = self.scene2.get_relc_from_topleft(val, self.panning_image.get_width(), self.panning_image.get_height(), crop_width, crop_height)
     
     def panning_initialize_image_display(self, image_path):
+        self.panning_image_name_label.set_text(os.path.basename(image_path))
+        
+        # Change theme data for the selection list
+        with open(os.path.join(self.app.application_path, "data/themes/changing_theme.json"), "r") as f:
+            theme = json.load(f)
+        if hasattr(self, "panning_image_path") and self.panning_image_path not in self.panning:
+            if f"#Select_{os.path.basename(self.panning_image_path)}_btn" in theme:
+                theme[f"#Select_{os.path.basename(self.panning_image_path)}_btn"] = {"colours":{"normal_bg":"rgb(76, 80, 82)", "hovered_bg":"rgb(99, 104, 107)", "selected_bg":"rgb(54, 88, 128)", "active_bg":"rgb(54, 88, 128)"}}
+        
+        if image_path not in self.panning:
+            theme[f"#Select_{os.path.basename(image_path)}_btn"] = {"colours":{"normal_bg":"rgb(54, 88, 128)", "hovered_bg":"rgb(99, 104, 107)", "selected_bg":"rgb(54, 88, 128)", "active_bg":"rgb(54, 88, 128)"}}
+        with open(os.path.join(self.app.application_path, "data/themes/changing_theme.json"), "w") as f:
+            json.dump(theme, f, indent=2)
+        
+        self.panning_image_select.rebuild_from_changed_theme_data()
+        
+        
+        
         # Load image
         self.panning_image_path = image_path
         self.panning_image = self.scene2.load_image(image_path)
@@ -251,6 +279,10 @@ class PanningScreen(pygame_gui.elements.UIPanel):
             self.change_curr_zoom(self.panning[image_path]["zoom_level"])
             self.panning_delete_btn.enable()
             self.panning_copy_btn.enable()
+        
+        
+        
+        
         
         
         
@@ -400,7 +432,7 @@ class PanningScreen(pygame_gui.elements.UIPanel):
                 
                     with open(os.path.join(self.app.application_path, "data/themes/changing_theme.json"), "r") as f:
                         theme = json.load(f)
-                    theme[f"#Select_{os.path.basename(self.panning_image_path)}_btn"] = {"colours":{"normal_bg":"rgb(76, 80, 82)", "hovered_bg":"rgb(99, 104, 107)", "selected_bg":"rgb(54, 88, 128)", "active_bg":"rgb(54, 88, 128)"}}
+                    theme[f"#Select_{os.path.basename(self.panning_image_path)}_btn"] = {"colours":{"normal_bg":"rgb(54, 88, 128)", "hovered_bg":"rgb(99, 104, 107)", "selected_bg":"rgb(54, 88, 128)", "active_bg":"rgb(54, 88, 128)"}}
                     with open(os.path.join(self.app.application_path, "data/themes/changing_theme.json"), "w") as f:
                         json.dump(theme, f, indent=2)
                     
@@ -483,6 +515,21 @@ class PanningScreen(pygame_gui.elements.UIPanel):
                 self.dragging = False
         
         
+        #Keyboard event
+        elif event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_DOWN:
+                self.curr_panning_index += 1
+                if self.curr_panning_index < len(self.image_paths):
+                    self.reinit_on_update = True
+                else:
+                    self.curr_panning_index = len(self.image_paths) - 1
+            
+            elif event.key == pygame.K_UP:
+                self.curr_panning_index -= 1
+                if self.curr_panning_index >= 0:
+                    self.reinit_on_update = True
+                else:
+                    self.curr_panning_index = 0
         
         
         #Mouse click events
@@ -524,4 +571,11 @@ class PanningScreen(pygame_gui.elements.UIPanel):
                     if changed:
                         self.panning_update_image_display()
                         self.save_panning()
-                        
+    
+    
+    def update(self, time_delta: float):
+        super().update(time_delta)
+        if self.reinit_on_update:
+            image_path = self.image_paths[self.curr_panning_index]
+            self.panning_initialize_image_display(image_path)
+            self.reinit_on_update = False

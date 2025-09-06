@@ -87,5 +87,10 @@
         "misc":{
             "text_horiz_alignment":"left"
         }
+    }, 
+    "#panning_image_name_label":{
+        "misc":{
+            "text_horiz_alignment":"right"
+        }
     }
 }

@@ -27,6 +27,7 @@ class PreviewScreen(pygame_gui.elements.UIPanel):
                          manager=self.manager, 
                          anchors={"left":"left", "right":"right", "top":"top", "top_target":anchor_target})
         self.preview_playing = False
+        self.reinit_on_update = False
 
         self.preview_image_select = pygame_gui.elements.UISelectionList(
             relative_rect=pygame.Rect(-370, 0, 370, 650),
@@ -339,7 +340,24 @@ class PreviewScreen(pygame_gui.elements.UIPanel):
                 self.preview_play_btn.set_text("Play")
     
     
-    
+
+                #Keyboard event
+        elif event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_DOWN:
+                self.curr_preview_index += 1
+                if self.curr_preview_index < len(self.image_paths):
+                    self.reinit_on_update = True
+                else:
+                    self.curr_panning_index = len(self.image_paths) - 1
+            
+            elif event.key == pygame.K_UP:
+                self.curr_preview_index -= 1
+                if self.curr_preview_index >= 0:
+                    self.reinit_on_update = True
+                else:
+                    self.curr_preview_index = 0
+        
+        
     
     
     def update(self, time_delta):
@@ -352,5 +370,9 @@ class PreviewScreen(pygame_gui.elements.UIPanel):
             else:
                 curr_index += 1
                 self.preview_show_image(self.image_paths[curr_index])
-                
+        
+        if self.reinit_on_update:
+            image_path = self.image_paths[self.curr_preview_index]
+            self.preview_show_image(image_path)
+            self.reinit_on_update = False
         
