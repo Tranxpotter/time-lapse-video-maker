@@ -363,13 +363,12 @@ class PreviewScreen(pygame_gui.elements.UIPanel):
     def update(self, time_delta):
         super().update(time_delta)
         if self.preview_playing:
-            curr_index = self.image_paths.index(self.preview_showing_image_path)
-            if curr_index == len(self.image_paths)-1:
+            if self.curr_preview_index == len(self.image_paths)-1:
                 self.preview_playing = False
                 self.preview_play_btn.set_text("Play")
             else:
-                curr_index += 1
-                self.preview_show_image(self.image_paths[curr_index])
+                self.curr_preview_index += 1
+                self.preview_show_image(self.image_paths[self.curr_preview_index])
         
         if self.reinit_on_update:
             image_path = self.image_paths[self.curr_preview_index]
