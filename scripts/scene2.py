@@ -35,13 +35,17 @@ class Scene2(Scene):
         
         self.zoom_ratio_per_level = 0.02
         
-        #Initialize the UI layout for scene2
-        self.manager.clear_and_reset()
+        self.container = pygame_gui.elements.UIPanel(
+            pygame.Rect(0, 0, 1080, 720), 
+            manager=self.manager
+        )
         
+        #Initialize the UI layout for scene2
         #Navigation bar
         self.nav_bar = pygame_gui.elements.UIPanel(
             relative_rect=pygame.Rect(0, 0, 1080, 70),
             manager=self.manager, 
+            container=self.container, 
             anchors={"left":"left", "top":"top", "right":"right"},
         )
         
@@ -110,41 +114,57 @@ class Scene2(Scene):
         #Preview screen
         self.curr_preview_index = 0
         
+        #Export screen
+        if self.export_screen is not None:
+            self.export_screen.scene2 = self
+            self.export_screen.set_container(self.container)
+            
         
         #Initialize first active screen
-        self.curr_active_screen = OptionsScreen(self.app, self.manager, self, self.nav_bar)
+        self.curr_active_screen = OptionsScreen(self.app, self.manager, self, self.nav_bar, self.container)
         self.curr_disabled_btn = self.scene2_options_btn
         self.scene2_options_btn.disable()
     
-    
+    @property
+    def export_screen(self):
+        return self.app.export_screen
+
+    @export_screen.setter
+    def export_screen(self, screen):
+        self.app.export_screen = screen
 
     def to_page(self, name:Literal["Options", "Panning", "Preview", "Export"]):
-        if name == "Options":
+        if isinstance(self.curr_active_screen, ExportScreen):
+            self.curr_disabled_btn.enable()
+            self.curr_active_screen.hide()
+        else:
             self.curr_disabled_btn.enable()
             self.curr_active_screen.kill()
+        
+        if name == "Options":
             self.curr_disabled_btn = self.scene2_options_btn
-            self.curr_active_screen = OptionsScreen(self.app, self.manager, self, self.nav_bar)
+            self.curr_active_screen = OptionsScreen(self.app, self.manager, self, self.nav_bar, self.container)
             self.scene2_options_btn.disable()
         
         elif name == "Panning":
-            self.curr_disabled_btn.enable()
-            self.curr_active_screen.kill()
             self.curr_disabled_btn = self.scene2_panning_btn
-            self.curr_active_screen = PanningScreen(self.app, self.manager, self, self.nav_bar)
+            self.curr_active_screen = PanningScreen(self.app, self.manager, self, self.nav_bar, self.container)
             self.scene2_panning_btn.disable()
         
         elif name == "Preview":
-            self.curr_disabled_btn.enable()
-            self.curr_active_screen.kill()
             self.curr_disabled_btn = self.scene2_preview_btn
-            self.curr_active_screen = PreviewScreen(self.app, self.manager, self, self.nav_bar)
+            self.curr_active_screen = PreviewScreen(self.app, self.manager, self, self.nav_bar, self.container)
             self.scene2_preview_btn.disable()
         
         elif name == "Export":
-            self.curr_disabled_btn.enable()
-            self.curr_active_screen.kill()
             self.curr_disabled_btn = self.scene2_export_btn
-            self.curr_active_screen = ExportScreen(self.app, self.manager, self, self.nav_bar)
+            if self.export_screen is None:
+                self.curr_active_screen = ExportScreen(self.app, self.manager, self, self.container)
+                self.export_screen = self.curr_active_screen
+            else:
+                self.curr_active_screen = self.export_screen
+                self.curr_active_screen.update_display()
+                self.curr_active_screen.show()
             self.scene2_export_btn.disable()
 
         else:

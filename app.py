@@ -46,11 +46,7 @@ class App:
         self.dt = 0
         self.running = True
         
-        self.panning_active = False
-        self.dragging = False
-        self.preview_playing = False
-        self.zoom_ratio_per_level = 0.02
-        self.exporting = False
+        
         
         self.curr_scene = 1
         
@@ -87,13 +83,18 @@ class App:
         
         
         self.curr_scene_instance = FileChoosing(self, self.manager)
+        self.export_screen = None
     
     
     def to_scene1(self):
+        if self.curr_scene == 2 and isinstance(self.curr_scene_instance, Scene2):
+            self.export_screen = self.curr_scene_instance.export_screen
         self.curr_scene = 1
+        self.curr_scene_instance.container.hide()
         self.curr_scene_instance = FileChoosing(self, self.manager)
     
     def to_scene2(self, file_paths:list[str]):
+        self.curr_scene_instance.container.hide()
         self.curr_scene = 2
         self.curr_scene_instance = Scene2(self, self.manager, file_paths)
     
@@ -105,6 +106,9 @@ class App:
                     answer = messagebox.askyesno("Warning", "Are you sure you want to quit? All changes will be lost.")
                     if answer is True:
                         self.running = False
+                        #Force stop the exporting thread
+                        if self.export_screen is not None:
+                            self.export_screen.exporting = False
                 else:
                     self.running = False
                     
@@ -147,3 +151,4 @@ if __name__ == "__main__":
     app = App()
     app.run()
     pygame.quit()
+    del app

@@ -19,12 +19,13 @@ if TYPE_CHECKING:
 
 
 class PanningScreen(pygame_gui.elements.UIPanel):
-    def __init__(self, app:App, manager:pygame_gui.UIManager, scene2:Scene2, anchor_target):
+    def __init__(self, app:App, manager:pygame_gui.UIManager, scene2:Scene2, anchor_target, container):
         self.app = app
         self.manager = manager
         self.scene2 = scene2
         super().__init__(relative_rect=pygame.Rect(0, 0, 1080, 650),
                          manager=self.manager, 
+                         container=container, 
                          anchors={"left":"left", "right":"right", "top":"top", "top_target":anchor_target})
     
 

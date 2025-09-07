@@ -20,11 +20,17 @@ class FileChoosing(Scene):
     def __init__(self, app:App, manager:pygame_gui.UIManager):
         self.app = app
         self.manager = manager
-        self.manager.clear_and_reset()
+        
+        self.container = pygame_gui.elements.UIPanel(
+            relative_rect=pygame.Rect(0, 0, 1080, 720), 
+            manager=self.manager
+        )
+        
         title = pygame_gui.elements.UILabel(
             relative_rect=pygame.Rect(0, 0, 1080, 100),
             text='Time Lapse Video Maker', 
-            manager=self.manager, 
+            manager=self.manager,
+            container=self.container,  
             anchors={"left":"left", "top":"top", "right":"right"}, 
             object_id=ObjectID(class_id="@title", object_id="#title_screen_title")
         )
@@ -32,6 +38,7 @@ class FileChoosing(Scene):
         input_frame = pygame_gui.elements.UIPanel(
             relative_rect=pygame.Rect(0, -620, 1080, 620),
             manager=self.manager, 
+            container=self.container, 
             anchors={"left":"left", "right":"right", "bottom":"bottom"},
         )
         
@@ -88,7 +95,10 @@ class FileChoosing(Scene):
             anchors={"left":"left", "top":"top", "top_target":self.scene1_error_msg}, 
             object_id=ObjectID(class_id="@label", object_id="#scene1_instructions")
         )
-        
+    
+    def reset(self):
+        self.file_path_entry.set_text("")
+        self.scene1_error_msg.hide()
 
     def handle_event(self, event):
         if event.type == pygame_gui.UI_BUTTON_PRESSED:

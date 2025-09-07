@@ -92,5 +92,51 @@
         "misc":{
             "text_horiz_alignment":"right"
         }
+    }, 
+    "#export_error_label":{
+        "colours":{
+            "normal_text":"rgb(255,0,0)"
+        }
+    }, 
+    "#export_queue_label":{
+        "font":{
+            "name":"Helvetica", 
+            "size":"17"
+        }
+    }, 
+    "#export_queue_tooltip_button":{
+        "font":{
+            "name":"Helvetica", 
+            "size":"17"
+        }, 
+        "colours":{
+            "normal_bg":"rgb(50,50,50)", 
+            "hovered_bg":"rgb(50,50,50)", 
+            "disabled_bg":"rgb(50,50,50)", 
+            "selected_bg":"rgb(50,50,50)", 
+            "active_bg":"rgb(50,50,50)"
+        }, 
+        "misc":{
+            "border_width":"0"
+        }
+    }, 
+    "#export_queue_button":{
+        "font":{
+            "name":"Helvetica", 
+            "size":"17"
+        }
+    }, 
+    "#export_queue_box":{
+        "colours":{
+            "dark_bg":"rgb(50,50,50)"
+        }, 
+        "misc":{
+            "border_width":"0"
+        }
+    }, 
+    "#export_queue_display":{
+        "misc":{
+            "border_width":"0"
+        }
     }
 }
