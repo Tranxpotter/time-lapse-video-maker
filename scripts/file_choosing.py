@@ -44,26 +44,27 @@ class FileChoosing(Scene):
         
         label = pygame_gui.elements.UILabel(
             relative_rect=pygame.Rect(20, 0, 200, 50),
-            text='Enter the path:', 
+            text='Chosen File Path:', 
             manager=self.manager, 
             container=input_frame, 
             anchors={"left":"left", "top":"top"},
             object_id=ObjectID(class_id="@label", object_id="#scene1_label")
         )
         
-        self.file_path_entry = pygame_gui.elements.UITextEntryLine(
+        self.file_path_label = pygame_gui.elements.UILabel(
             relative_rect=pygame.Rect(-100, 0, 400, 50),
+            text="", 
             manager=self.manager, 
             container=input_frame, 
             anchors={"centerx":"centerx", "top":"top"}, 
-            object_id=ObjectID(class_id="@text_entry", object_id="#file_path_entry")
+            object_id=ObjectID(class_id="@label", object_id="#file_path_label")
         )
         
         self.file_choosing_btn = pygame_gui.elements.UIButton(
             relative_rect=pygame.Rect(20, 0, 100, 50),
             text='Choose files',
             manager=self.manager, 
-            anchors={"left":"left", "left_target":self.file_path_entry}, 
+            anchors={"left":"left", "left_target":self.file_path_label}, 
             container=input_frame, 
             object_id=ObjectID(class_id="@file_choosing_btn", object_id="#file_choosing_btn")
         )
@@ -82,7 +83,7 @@ class FileChoosing(Scene):
             text='Please choose a valid file path',
             manager=self.manager,
             container=input_frame, 
-            anchors={"left":"left", "top":"top", "top_target":self.file_path_entry}, 
+            anchors={"left":"left", "top":"top", "top_target":self.file_path_label}, 
             object_id=ObjectID(class_id="@error_msg", object_id="#scene1_error_msg")
         )
         self.scene1_error_msg.hide()
@@ -97,7 +98,7 @@ class FileChoosing(Scene):
         )
     
     def reset(self):
-        self.file_path_entry.set_text("")
+        self.file_path_label.set_text("")
         self.scene1_error_msg.hide()
 
     def handle_event(self, event):
@@ -115,7 +116,7 @@ class FileChoosing(Scene):
                     self.file_paths = []
                     file_path = ""
                     
-                self.file_path_entry.set_text(file_path)
+                self.file_path_label.set_text(file_path)
             
             elif event.ui_element == self.confirm_btn:
                 if not self.check_file_path_exists():
@@ -125,9 +126,6 @@ class FileChoosing(Scene):
                 else:
                     self.scene2()
 
-        elif event.type == pygame_gui.UI_TEXT_ENTRY_CHANGED:
-            if hasattr(self, "file_path_entry") and event.ui_element == self.file_path_entry:
-                self.scene1_error_msg.hide()
 
 
     def check_file_path_exists(self):

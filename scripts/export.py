@@ -468,7 +468,16 @@ class ExportScreen(pygame_gui.elements.UIPanel):
                     return
         
         video.release()
-        export_progress_display.set_text(f"Done")
+        try:
+            export_progress_display = self.export_queue_display.get_element(display_row_key, 8)
+            export_progress_display.set_text(f"Done")
+        except:
+            pass
+        try:
+            cancel_btn = self.export_queue_display.get_element(display_row_key, 9)
+            cancel_btn.disable()
+        except:
+            pass
         del self.exports[display_row_key]
         self.exporting = False
         self.exporting_key = None

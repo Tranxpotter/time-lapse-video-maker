@@ -108,7 +108,7 @@ class App:
                         self.running = False
                         #Force stop the exporting thread
                         if self.export_screen is not None:
-                            self.export_screen.exporting = False
+                                self.export_screen.exporting = False
                 else:
                     self.running = False
                     
