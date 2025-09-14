@@ -270,12 +270,21 @@ class ExportScreen(pygame_gui.elements.UIPanel):
 
         
         self.export_button = pygame_gui.elements.UIButton(
-            relative_rect=pygame.Rect(0, 10, 100, 50), 
-            text="Export", 
+            relative_rect=pygame.Rect(-70, 10, 140, 50), 
+            text="Add to Export", 
             manager = self.manager, 
             container = self, 
             anchors = {"centerx":"centerx", "top":"top", "top_target":next_target}, 
             object_id=ObjectID(class_id="@button", object_id="#export_button")
+        )
+        
+        self.start_export_button = pygame_gui.elements.UIButton(
+            relative_rect=pygame.Rect(70, 10, 140, 50), 
+            text="Start Exporting", 
+            manager = self.manager, 
+            container = self, 
+            anchors = {"centerx":"centerx", "top":"top", "top_target":next_target}, 
+            object_id=ObjectID(class_id="@button", object_id="#start_export_button")
         )
         
         column_spans = [4,2,3,2,3,3,4,4,3,2]
@@ -520,7 +529,6 @@ class ExportScreen(pygame_gui.elements.UIPanel):
                        "display_row_key":row
                        }
         self.exports[row] = export_info
-        self.attempt_start_export()
     
     def attempt_start_export(self):
         '''Called whenever to attempt to start a new export task'''
@@ -585,6 +593,9 @@ class ExportScreen(pygame_gui.elements.UIPanel):
                     else:
                         self.cancelling_export = True
                         self.cancelling_export_row = row
+            
+            if event.ui_element == self.start_export_button:
+                self.attempt_start_export()
                 
     def update(self, time_delta: float):
         super().update(time_delta)

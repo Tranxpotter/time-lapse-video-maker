@@ -96,7 +96,7 @@ class PanningScreen(pygame_gui.elements.UIPanel):
         
         self.panning_delete_btn = pygame_gui.elements.UIButton(
             relative_rect=pygame.Rect(0, 20, 100, 50),
-            text='Delete',
+            text='Reset',
             manager=self.manager, 
             container=self, 
             anchors={"left":"left", "top":"top", "left_target":self.panning_save_btn, "top_target":self.zoom_slider}, 
