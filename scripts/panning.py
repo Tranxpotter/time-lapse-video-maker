@@ -313,7 +313,6 @@ class PanningScreen(pygame_gui.elements.UIPanel):
         
         image_w, image_h = self.panning_image.get_width(), self.panning_image.get_height()
         
-        
         selected_x -= move_x
         selected_y -= move_y
         selected_x = max(0, min((image_w - selected_w), selected_x))
@@ -322,7 +321,6 @@ class PanningScreen(pygame_gui.elements.UIPanel):
         moved = not self.panning_selected_top_left == (selected_x, selected_y)
         
         self.panning_selected_top_left = (selected_x, selected_y)
-        
         return moved
     
     
@@ -347,7 +345,7 @@ class PanningScreen(pygame_gui.elements.UIPanel):
             
             old_width = self.scene2.calc_zoom_value(old_zoom, self.base_panning_selected_width)
             new_width = self.scene2.calc_zoom_value(new_zoom, self.base_panning_selected_width)
-            move_x = -(old_width - new_width) * relc_x
+            move_x = -(old_width - new_width) * (relc_x-0.5)
         else:
             move_x = 0
         
@@ -357,7 +355,7 @@ class PanningScreen(pygame_gui.elements.UIPanel):
             
             old_height = self.scene2.calc_zoom_value(old_zoom, self.base_panning_selected_height)
             new_height = self.scene2.calc_zoom_value(new_zoom, self.base_panning_selected_height)
-            move_y = -(old_height - new_height) * relc_y
+            move_y = -(old_height - new_height) * (relc_y-0.5)
         else:
             move_y = 0
             
@@ -366,7 +364,7 @@ class PanningScreen(pygame_gui.elements.UIPanel):
         if update_slider:
             self.zoom_slider.set_current_value(zoom_val)
         
-        self.zoom_entry.set_text(str(self.panning_zoom_level))
+        self.zoom_entry.set_text(str(zoom_val))
         
         if move_x or move_y:
             self.panning_selected_width, self.panning_selected_height = self.scene2.calc_zoom_value(self.panning_zoom_level, self.base_panning_selected_width), self.scene2.calc_zoom_value(self.panning_zoom_level, self.base_panning_selected_height)
