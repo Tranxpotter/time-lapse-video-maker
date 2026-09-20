@@ -256,19 +256,19 @@ class ExportScreen(pygame_gui.elements.UIPanel):
             object_id=ObjectID(class_id="@export_info_label", object_id="#export_video_anti_flickering_label")
         )
         next_target = self.export_video_anti_flickering_label
-        
-        if self.anti_flickering == "On":
-            self.export_video_anti_flickering_sample_size_label = pygame_gui.elements.UILabel(
-                relative_rect=pygame.Rect(30, 0, 1050, 50), 
-                text=f"Anti-flickering Sample Size: {self.anti_flickering_sample_size}", 
-                manager = self.manager, 
-                container = self, 
-                anchors = {"left":"left", "top":"top", "top_target":self.export_video_anti_flickering_label}, 
-                object_id=ObjectID(class_id="@export_info_label", object_id="#export_video_anti_flickering_sample_size_label")
-            )
-            next_target = self.export_video_anti_flickering_sample_size_label
 
-        
+        sample_size_text = f"Anti-flickering Sample Size: {self.anti_flickering_sample_size}" if self.anti_flickering == "On" else "Anti-flickering Sample Size: —"
+        self.export_video_anti_flickering_sample_size_label = pygame_gui.elements.UILabel(
+            relative_rect=pygame.Rect(30, 0, 1050, 50), 
+            text=sample_size_text, 
+            manager = self.manager, 
+            container = self, 
+            anchors = {"left":"left", "top":"top", "top_target":self.export_video_anti_flickering_label}, 
+            object_id=ObjectID(class_id="@export_info_label", object_id="#export_video_anti_flickering_sample_size_label")
+        )
+        next_target = self.export_video_anti_flickering_sample_size_label
+
+
         self.export_button = pygame_gui.elements.UIButton(
             relative_rect=pygame.Rect(-70, 10, 140, 50), 
             text="Add to Export", 
@@ -318,7 +318,37 @@ class ExportScreen(pygame_gui.elements.UIPanel):
                 object_id=ObjectID(class_id="@button", object_id="#export_error_label")
             )
             self.export_button.disable()
+
+    def reposition_buttons_and_below(self, top_target):
+        self.export_button.set_anchors({"centerx":"centerx", "top":"top", "top_target":top_target})
+        self.start_export_button.set_anchors({"centerx":"centerx", "top":"top", "top_target":top_target})
+        self.export_button.update_containing_rect_position()
+        self.start_export_button.update_containing_rect_position()
+        # Re-pin everything anchored to the buttons now that they've moved
+        self.export_queue_display.update_containing_rect_position()
+        if hasattr(self, "export_error_label") and self.export_error_label is not None:
+            self.export_error_label.update_containing_rect_position()
     
+    def show_anti_flickering_sample_size_label(self):
+        if self.export_video_anti_flickering_sample_size_label is None:
+            self.export_video_anti_flickering_sample_size_label = pygame_gui.elements.UILabel(
+                relative_rect=pygame.Rect(30, 0, 1050, 50), 
+                text=f"Anti-flickering Sample Size: {self.anti_flickering_sample_size}", 
+                manager = self.manager, 
+                container = self, 
+                anchors = {"left":"left", "top":"top", "top_target":self.export_video_anti_flickering_label}, 
+                object_id=ObjectID(class_id="@export_info_label", object_id="#export_video_anti_flickering_sample_size_label")
+            )
+        else:
+            self.export_video_anti_flickering_sample_size_label.show()
+        self.reposition_buttons_and_below(self.export_video_anti_flickering_sample_size_label)
+
+    def hide_anti_flickering_sample_size_label(self):
+        if self.export_video_anti_flickering_sample_size_label is None:
+            return
+        self.export_video_anti_flickering_sample_size_label.hide()
+        self.reposition_buttons_and_below(self.export_video_anti_flickering_label)
+
     def update_display(self):
         if hasattr(self, "export_error_label") and self.export_error_label is not None:
             self.export_error_label.kill()
@@ -331,6 +361,8 @@ class ExportScreen(pygame_gui.elements.UIPanel):
         self.export_video_anti_flickering_label.set_text(f"Anti-flickering: {self.anti_flickering}")
         if self.anti_flickering == "On":
             self.export_video_anti_flickering_sample_size_label.set_text(f"Anti-flickering Sample Size: {self.anti_flickering_sample_size}")
+        else:
+            self.export_video_anti_flickering_sample_size_label.set_text("Anti-flickering Sample Size: —")
         error_msg = ""
         if not self.check_resolution_valid():
             error_msg += "Video resolution is invalid.\n"
@@ -596,6 +628,7 @@ class ExportScreen(pygame_gui.elements.UIPanel):
             
             if event.ui_element == self.start_export_button:
                 self.attempt_start_export()
+        self.manager.process_events(event)
                 
     def update(self, time_delta: float):
         super().update(time_delta)

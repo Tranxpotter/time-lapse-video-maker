@@ -163,8 +163,8 @@ class Scene2(Scene):
                 self.export_screen = self.curr_active_screen
             else:
                 self.curr_active_screen = self.export_screen
-                self.curr_active_screen.update_display()
                 self.curr_active_screen.show()
+                self.curr_active_screen.update_display()
             self.scene2_export_btn.disable()
 
         else:
