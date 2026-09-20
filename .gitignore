@@ -1,3 +1,5 @@
 __pycache__/
 data/themes/changing_theme.json
 data/themes/fonts.json
+build/
+dist/

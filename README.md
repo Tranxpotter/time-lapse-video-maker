@@ -4,8 +4,10 @@
 A Python-based tool designed to create high-quality time-lapse videos from a series of images. This project allows for simple video zooming and panning, and various export options to help automate the process of turning photo sequences into cinematic videos.
 
 ## How to Run
-To get this project running on your local machine, follow these steps:
+### Option 1: Released executable
+Just download the executable and run it on your machine
 
+### Option 2: Python
 1. **Clone the repository:**
    ```bash
    git clone <repository-url>
@@ -31,6 +33,11 @@ To get this project running on your local machine, follow these steps:
    ```bash
    python app.py
    ```
+
+### Option 3: Local build
+1. Follow the above python step 1-3
+2. Run the command `pyinstaller app_one_file.spec`, or `pyinstaller app_folder.spec`, depends on whether you want a standalone executable, or a folder. 
+3. Find the executable in `dist/` folder
 
 ## How to Use
 ### 1. Select source images
